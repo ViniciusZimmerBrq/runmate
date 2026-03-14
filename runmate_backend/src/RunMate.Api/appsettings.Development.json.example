@@ -1,0 +1,9 @@
+{
+  "Jwt": {
+    "Issuer": "RunMate.Api",
+    "Audience": "RunMate.Mobile"
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=runmate;Username=postgres;Password=postgres"
+  }
+}
