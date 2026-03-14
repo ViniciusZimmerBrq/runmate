@@ -1,13 +1,13 @@
-name: Bug Report
-description: Report a defect in app, backend, CI or project process
+name: Bug
+description: Track a functional, technical, or regression bug
 title: "[Bug]: "
 labels:
   - bug
 body:
   - type: textarea
-    id: description
+    id: summary
     attributes:
-      label: Description
+      label: Summary
       description: Describe the bug clearly.
     validations:
       required: true
@@ -15,7 +15,6 @@ body:
     id: steps
     attributes:
       label: Steps to Reproduce
-      description: Tell us how to reproduce it.
     validations:
       required: true
   - type: textarea
@@ -37,9 +36,23 @@ body:
       options:
         - Flutter
         - Backend
-        - CI/CD
-        - Docs
-  - type: textarea
-    id: notes
+        - QA
+        - Security
+        - DevOps
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
     attributes:
-      label: Additional Notes
+      label: Priority
+      options:
+        - High
+        - Medium
+        - Low
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - label: Security Impact
+        - label: Blocks Sprint

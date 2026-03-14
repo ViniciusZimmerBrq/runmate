@@ -1,0 +1,88 @@
+name: Story
+description: Create a product or delivery story aligned with the GitHub Project workflow
+title: "[Story]: "
+labels:
+  - story
+body:
+  - type: input
+    id: story_id
+    attributes:
+      label: Story ID
+      placeholder: US-301
+    validations:
+      required: true
+  - type: input
+    id: epic
+    attributes:
+      label: Epic
+      placeholder: Auth
+    validations:
+      required: true
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: Use the format Como..., quero..., para...
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem is this story solving?
+    validations:
+      required: true
+  - type: textarea
+    id: scope_in
+    attributes:
+      label: In Scope
+      description: List what is included.
+    validations:
+      required: true
+  - type: textarea
+    id: scope_out
+    attributes:
+      label: Out of Scope
+      description: List what is not included.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: Add testable acceptance criteria.
+    validations:
+      required: true
+  - type: textarea
+    id: business_rules
+    attributes:
+      label: Business Rules
+  - type: textarea
+    id: edge_cases
+    attributes:
+      label: Edge Cases
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Product
+        - Flutter
+        - Backend
+        - QA
+        - Security
+        - DevOps
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
