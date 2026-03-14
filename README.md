@@ -45,17 +45,20 @@ O board e as issues no GitHub sao a fonte oficial da execucao. O repositorio gua
 Use o hub de terminal para visualizar board, fila de tarefas e handoff entre agents:
 
 ```bash
-bash ./scripts/runmate-ops summary
-bash ./scripts/runmate-ops ready
-bash ./scripts/runmate-ops next
-bash ./scripts/runmate-ops show 2
-bash ./scripts/runmate-ops team
-bash ./scripts/runmate-ops timeline 2
-bash ./scripts/runmate-ops run 2
-bash ./scripts/runmate-ops approve 2
+./scripts/runmate-ops summary
+./scripts/runmate-ops ready
+./scripts/runmate-ops next
+./scripts/runmate-ops show 2
+./scripts/runmate-ops team
+./scripts/runmate-ops timeline 2
+./scripts/runmate-ops run 2
+./scripts/runmate-ops approve 2
+./scripts/runmate-ops swarm 2
 ```
 
-O hub tambem mantém um estado local por issue em `.runmate/ops-state.json`, liberando os agents em ordem:
+O hub agora e baseado em Python + `Swarms`, com um wrapper simples em `scripts/runmate-ops`.
+
+O estado local por issue continua em `.runmate/ops-state.json`, liberando os agents em ordem:
 
 - Product: `PM -> PO -> Tech Lead`
 - Flutter: `PM -> PO -> Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator`
