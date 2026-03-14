@@ -1,7 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
+using RunMate.Api.Configuration;
 using RunMate.Application.Dtos;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var jwtSettings = builder.Configuration
+    .GetSection(JwtSettings.SectionName)
+    .Get<JwtSettings>() ?? new JwtSettings();
+
+if (!builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(jwtSettings.Secret))
+{
+    throw new InvalidOperationException(
+        "JWT secret is missing. Configure Jwt:Secret or JWT__Secret before starting the API.");
+}
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -16,6 +27,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+app.MapGet("/health/config", () => Results.Ok(new
+{
+    JwtIssuer = jwtSettings.Issuer,
+    JwtAudience = jwtSettings.Audience,
+    HasJwtSecret = !string.IsNullOrWhiteSpace(jwtSettings.Secret),
+    Environment = builder.Environment.EnvironmentName,
+}));
 
 app.MapGet("/api/dashboard/weekly-summary", () =>
     Results.Ok(
