@@ -1,5 +1,32 @@
 # Template - Campos do GitHub Projects
 
+## Estado atual do board
+
+Project atual identificado:
+
+- `RunMate Delivery Board`
+
+Campos que ja existem no project:
+
+- `Status`
+- `Priority`
+- `Sprint`
+- `Primary Agent`
+- `Secondary Agent`
+- `Area`
+- `Estimate`
+- `Risk`
+
+Itens ja presentes no board:
+
+- `US-301`
+- `US-302`
+- `US-303`
+- `US-304`
+- `US-305`
+- `US-306`
+- `US-307`
+
 ## Revisao do modelo
 
 O board deve ser simples de ler e rapido de operar.
@@ -16,7 +43,7 @@ Recomendacao:
 |---|---|---|
 | Status | Single select | estado atual do item |
 | Priority | Single select | prioridade do trabalho |
-| Sprint | Single select | sprint associada |
+| Sprint | Single select | ciclo atual de execucao |
 | Area | Single select | area principal |
 | Primary Agent | Single select | dono principal |
 | Secondary Agent | Single select | agente de apoio |
@@ -109,6 +136,59 @@ Para o board ficar mais legivel:
 - mostrar `Risk`
 
 Evitar mostrar campos demais no card.
+
+## Configuracao operacional recomendada agora
+
+### Views para criar ou validar
+
+- `Sprint Board`
+  Agrupar por `Status`
+  Filtro: `Sprint = Sprint 3`
+
+- `Sprint Table`
+  Tipo `Table`
+  Filtro: `Sprint = Sprint 3`
+
+- `Ready Queue`
+  Tipo `Table`
+  Filtro: `Status = Ready`
+
+- `Review and QA`
+  Tipo `Board`
+  Filtro: `Status = Review` ou `QA`
+
+- `Blocked`
+  Tipo `Table`
+  Filtro: `Status = Blocked`
+
+- `Risk Review`
+  Tipo `Table`
+  Filtro: `Risk != None`
+
+### Campos visiveis no card
+
+Deixar visivel:
+
+- `Priority`
+- `Sprint`
+- `Primary Agent`
+- `Area`
+- `Risk`
+
+Ocultar do card:
+
+- `Secondary Agent`
+- `Estimate`
+
+## Checklist de operacao
+
+- toda issue nova entra com `Priority`, `Area`, `Primary Agent` e `Sprint`
+- issue pronta para ser puxada fica em `Status = Ready`
+- quando alguem assumir, mover para `In Progress`
+- PR aberta move o item para `Review`
+- validacao funcional move para `QA`
+- item travado vai para `Blocked`
+- travou por dependencia ou definicao? atualizar `Risk`
 
 ## Regra pratica
 

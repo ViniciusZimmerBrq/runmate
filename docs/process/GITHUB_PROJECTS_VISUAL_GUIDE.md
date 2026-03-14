@@ -9,7 +9,7 @@ Deixar o board do RunMate facil de ler, bonito o suficiente e pratico para opera
 Pontos bons:
 
 - o fluxo principal ja existe
-- as stories da Sprint 3 ja estao no board
+- as historias `US-301` a `US-307` ja estao no board
 - os agentes principais e secundarios ja foram criados
 
 Pontos a melhorar:
@@ -97,17 +97,22 @@ Motivo:
 - tipo: Table
 - filtro: `Sprint = Sprint 3`
 
-### 3. Review and QA
+### 3. Ready Queue
+
+- tipo: Table
+- filtro: `Status = Ready`
+
+### 4. Review and QA
 
 - tipo: Board
 - filtro: `Status = Review` ou `QA`
 
-### 4. Blocked
+### 5. Blocked
 
 - tipo: Table
 - filtro: `Status = Blocked`
 
-### 5. Risk Review
+### 6. Risk Review
 
 - tipo: Table
 - filtro: `Risk != None`
@@ -146,7 +151,7 @@ Se um campo nao ajuda voce a decidir nada em poucos segundos, ele nao deve apare
 ## O que eu mudaria agora no seu board
 
 1. renomear prioridades para `P1 High`, `P2 Medium`, `P3 Low`
-2. criar `Risk`
-3. migrar `Security Impact = Yes` para `Risk = Security`
-4. parar de usar `Blocked` como campo separado
-5. ocultar `Secondary Agent` do card
+2. manter `Risk` como campo unico de alerta
+3. parar de usar qualquer campo separado de bloqueio
+4. criar a view `Ready Queue`
+5. ocultar `Secondary Agent` e `Estimate` do card
