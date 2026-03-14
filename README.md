@@ -39,3 +39,27 @@ RunMate e um projeto de estudo e execucao de um app de corrida com:
 O projeto esta estruturado para seguir um fluxo com historias no GitHub, board em GitHub Projects e handoff entre agentes por papel.
 
 O board e as issues no GitHub sao a fonte oficial da execucao. O repositorio guarda contexto, processo, templates e regras operacionais do squad.
+
+## Operacao via terminal
+
+Use o hub de terminal para visualizar board, fila de tarefas e handoff entre agents:
+
+```bash
+./scripts/runmate-ops summary
+./scripts/runmate-ops ready
+./scripts/runmate-ops next
+./scripts/runmate-ops show 2
+./scripts/runmate-ops team
+./scripts/runmate-ops timeline 2
+./scripts/runmate-ops run 2
+./scripts/runmate-ops approve 2
+./scripts/runmate-ops swarm 2
+```
+
+O hub agora e baseado em Python + `Swarms`, com um wrapper simples em `scripts/runmate-ops`.
+
+O estado local por issue continua em `.runmate/ops-state.json`, liberando os agents em ordem:
+
+- Product: `PM -> PO -> Tech Lead`
+- Flutter: `PM -> PO -> Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator`
+- Backend: `PM -> PO -> Tech Lead -> Backend Dev -> Security -> QA -> PR Creator`

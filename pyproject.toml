@@ -1,0 +1,12 @@
+[project]
+name = "runmate-ops-swarms"
+version = "0.1.0"
+description = "Terminal orchestration hub for the RunMate multi-agent squad powered by Swarms."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "swarms",
+]
+
+[tool.setuptools]
+packages = ["runmate_ops_swarms"]
