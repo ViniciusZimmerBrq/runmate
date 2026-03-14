@@ -1,3 +1,9 @@
+#
+# Optional: when using a machine user for automatic PR approval, add that account
+# alongside @ViniciusZimmer for the paths it should be allowed to approve.
+# Example:
+# * @ViniciusZimmer @runmate-bot
+#
 * @ViniciusZimmer
 
 /runmate_app/ @ViniciusZimmer
