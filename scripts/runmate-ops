@@ -6,6 +6,8 @@ OWNER="${RUNMATE_OWNER:-ViniciusZimmerBrq}"
 REPO="${RUNMATE_REPO:-runmate}"
 PROJECT_NUMBER="${RUNMATE_PROJECT_NUMBER:-2}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+STATE_DIR="$ROOT_DIR/.runmate"
+STATE_FILE="$STATE_DIR/ops-state.json"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -17,8 +19,22 @@ require_cmd() {
 require_cmd gh
 require_cmd jq
 
+ensure_state_file() {
+  mkdir -p "$STATE_DIR"
+  if [[ ! -f "$STATE_FILE" ]]; then
+    printf '{"issues":{}}\n' >"$STATE_FILE"
+  fi
+}
+
 fetch_items() {
   gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 100
+}
+
+issue_json() {
+  local issue_number="$1"
+  fetch_items | jq -c --argjson issue "$issue_number" '
+    .items | map(select(.content.number == $issue)) | .[0]
+  '
 }
 
 agent_file() {
@@ -38,19 +54,36 @@ agent_file() {
   esac
 }
 
+agent_label() {
+  case "$1" in
+    pm) echo "PM" ;;
+    po) echo "PO" ;;
+    uxui) echo "UX/UI" ;;
+    techlead) echo "Tech Lead" ;;
+    flutter) echo "Flutter Dev" ;;
+    backend) echo "Backend Dev" ;;
+    security) echo "Security" ;;
+    qa) echo "QA" ;;
+    devops) echo "DevOps" ;;
+    prcreator) echo "PR Creator" ;;
+    codereview) echo "Code Review" ;;
+    *) echo "$1" ;;
+  esac
+}
+
 normalize_agent_key() {
   case "$1" in
-    "PM") echo "pm" ;;
-    "PO") echo "po" ;;
-    "UX/UI") echo "uxui" ;;
-    "Tech Lead") echo "techlead" ;;
-    "Flutter Dev") echo "flutter" ;;
-    "Backend Dev") echo "backend" ;;
-    "Security") echo "security" ;;
-    "QA") echo "qa" ;;
-    "DevOps") echo "devops" ;;
-    "PR Creator") echo "prcreator" ;;
-    "Code Review") echo "codereview" ;;
+    "PM"|pm) echo "pm" ;;
+    "PO"|po) echo "po" ;;
+    "UX/UI"|uxui|ux|ux/ui) echo "uxui" ;;
+    "Tech Lead"|techlead|tech) echo "techlead" ;;
+    "Flutter Dev"|flutter) echo "flutter" ;;
+    "Backend Dev"|backend) echo "backend" ;;
+    "Security"|security) echo "security" ;;
+    "QA"|qa) echo "qa" ;;
+    "DevOps"|devops) echo "devops" ;;
+    "PR Creator"|prcreator|pr) echo "prcreator" ;;
+    "Code Review"|codereview|review) echo "codereview" ;;
     *) echo "" ;;
   esac
 }
@@ -64,25 +97,90 @@ extract_prompt_block() {
   ' "$file"
 }
 
-issue_json() {
-  local issue_number="$1"
-  fetch_items | jq -c --argjson issue "$issue_number" '
-    .items | map(select(.content.number == $issue)) | .[0]
-  '
+flow_json_for_item() {
+  local item_json="$1"
+  jq -c '
+    . as $item
+    | (["pm", "po", "techlead"]) as $base
+    | if $item.area == "Flutter" then
+        $base + ["uxui", "flutter", "qa", "prcreator"]
+      elif $item.area == "Backend" then
+        $base + ["backend"]
+        + (if ($item.risk == "Security" or $item["secondary Agent"] == "Security") then ["security"] else [] end)
+        + ["qa", "prcreator"]
+      elif $item.area == "Product" then
+        $base
+      else
+        $base
+      end
+  ' <<<"$item_json"
 }
 
-next_handoff_for_area() {
-  case "$1" in
-    "Backend") echo "Tech Lead -> Backend Dev -> Security -> PR Creator -> QA" ;;
-    "Flutter") echo "Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator" ;;
-    "Product") echo "PM -> PO -> Tech Lead" ;;
-    *) echo "Primary Agent -> Secondary Agent" ;;
-  esac
+ensure_issue_state() {
+  local issue_number="$1"
+  local item_json="$2"
+  local flow_json
+
+  ensure_state_file
+  flow_json="$(flow_json_for_item "$item_json")"
+
+  local exists
+  exists="$(jq -r --arg issue "$issue_number" '.issues[$issue] != null' "$STATE_FILE")"
+
+  if [[ "$exists" != "true" ]]; then
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg issue "$issue_number" --argjson flow "$flow_json" '
+      .issues[$issue] = {
+        flow: $flow,
+        completed: []
+      }
+    ' "$STATE_FILE" >"$tmp"
+    mv "$tmp" "$STATE_FILE"
+  fi
+}
+
+current_stage_key() {
+  local issue_number="$1"
+  jq -r --arg issue "$issue_number" '
+    .issues[$issue] as $state
+    | ($state.completed | length) as $idx
+    | if $state.flow[$idx] == null then "" else $state.flow[$idx] end
+  ' "$STATE_FILE"
+}
+
+next_stage_key() {
+  local issue_number="$1"
+  jq -r --arg issue "$issue_number" '
+    .issues[$issue] as $state
+    | ($state.completed | length + 1) as $idx
+    | if $state.flow[$idx] == null then "" else $state.flow[$idx] end
+  ' "$STATE_FILE"
+}
+
+approve_stage() {
+  local issue_number="$1"
+  local agent_key="$2"
+  local tmp
+  tmp="$(mktemp)"
+  jq --arg issue "$issue_number" --arg agent "$agent_key" '
+    .issues[$issue].completed += [$agent]
+  ' "$STATE_FILE" >"$tmp"
+  mv "$tmp" "$STATE_FILE"
 }
 
 print_header() {
   printf "\nRunMate Ops\n"
   printf "Project: %s/%s - board %s\n\n" "$OWNER" "$REPO" "$PROJECT_NUMBER"
+}
+
+next_handoff_for_area() {
+  case "$1" in
+    "Backend") echo "PM -> PO -> Tech Lead -> Backend Dev -> Security -> QA -> PR Creator" ;;
+    "Flutter") echo "PM -> PO -> Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator" ;;
+    "Product") echo "PM -> PO -> Tech Lead" ;;
+    *) echo "PM -> PO -> Tech Lead" ;;
+  esac
 }
 
 cmd_summary() {
@@ -112,11 +210,17 @@ Status:
 - Blocked: $blocked
 - Done: $done
 
+Core flow:
+- Product: PM -> PO -> Tech Lead
+- Flutter: PM -> PO -> Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator
+- Backend: PM -> PO -> Tech Lead -> Backend Dev -> Security -> QA -> PR Creator
+
 Next commands:
-- ./scripts/runmate-ops ready
-- ./scripts/runmate-ops next
-- ./scripts/runmate-ops team
-- ./scripts/runmate-ops show 2
+- bash ./scripts/runmate-ops ready
+- bash ./scripts/runmate-ops next
+- bash ./scripts/runmate-ops start 2
+- bash ./scripts/runmate-ops timeline 2
+- bash ./scripts/runmate-ops run 2
 EOF
 }
 
@@ -159,15 +263,13 @@ cmd_next() {
         "- Secondary agent: \($item["secondary Agent"])\n" +
         "- Risk: \($item.risk)\n" +
         "- Estimate: \($item.estimate)\n" +
-        "\nNext handoff:\n" +
+        "\nRequired process:\n" +
         (if $item.area == "Backend" then
-          "Tech Lead -> Backend Dev -> Security -> PR Creator -> QA"
+          "PM -> PO -> Tech Lead -> Backend Dev -> Security -> QA -> PR Creator"
         elif $item.area == "Flutter" then
-          "Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator"
-        elif $item.area == "Product" then
-          "PM -> PO -> Tech Lead"
+          "PM -> PO -> Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator"
         else
-          $item["primary Agent"] + " -> " + $item["secondary Agent"]
+          "PM -> PO -> Tech Lead"
         end)
       end
   ' <<<"$items_json"
@@ -179,51 +281,44 @@ cmd_team() {
 Multi-agent operating flow:
 
 - Product: PM -> PO -> Tech Lead
-- Backend: Tech Lead -> Backend Dev -> Security -> PR Creator -> QA
-- Flutter: Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator
-- Security: enters on auth, token, secret, session, storage
-- DevOps: enters on CI/CD, environment, release, automation
+- Backend: PM -> PO -> Tech Lead -> Backend Dev -> Security -> QA -> PR Creator
+- Flutter: PM -> PO -> Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator
 
 Movement rules:
-- Ready: item is clear and can be pulled
-- In Progress: primary agent owns execution
-- Review: PR is open
-- QA: validation is in progress
-- Blocked: item is stuck and Risk must be updated
-- Done: merged and validated
+- run <id> only unlocks the next allowed agent
+- approve <id> closes the current stage and unlocks the next
+- timeline <id> shows the full process for a task
+- handoff <id> shows who owns the next pass
 EOF
 }
 
 cmd_show() {
   local issue_number="${1:-}"
   if [[ -z "$issue_number" ]]; then
-    echo "Usage: ./scripts/runmate-ops show <issue-number>" >&2
+    echo "Usage: bash ./scripts/runmate-ops show <issue-number>" >&2
     exit 1
   fi
 
-  local items_json
-  items_json="$(fetch_items)"
+  local item_json
+  item_json="$(issue_json "$issue_number")"
+  if [[ "$item_json" == "null" || -z "$item_json" ]]; then
+    echo "Issue not found in project." >&2
+    exit 1
+  fi
 
   print_header
-  jq -r --argjson issue "$issue_number" '
-    .items
-    | map(select(.content.number == $issue))
-    | .[0] as $item
-    | if $item == null then
-        "Issue not found in project."
-      else
-        "#\($item.content.number) \($item.title)\n" +
-        "- Status: \($item.status)\n" +
-        "- Sprint: \($item.sprint)\n" +
-        "- Priority: \($item.priority)\n" +
-        "- Area: \($item.area)\n" +
-        "- Primary agent: \($item["primary Agent"])\n" +
-        "- Secondary agent: \($item["secondary Agent"])\n" +
-        "- Risk: \($item.risk)\n" +
-        "- Estimate: \($item.estimate)\n" +
-        "- URL: \($item.content.url)\n"
-      end
-  ' <<<"$items_json"
+  jq -r '
+    "#\(.content.number) \(.title)\n" +
+    "- Status: \(.status)\n" +
+    "- Sprint: \(.sprint)\n" +
+    "- Priority: \(.priority)\n" +
+    "- Area: \(.area)\n" +
+    "- Primary agent: \(."primary Agent")\n" +
+    "- Secondary agent: \(."secondary Agent")\n" +
+    "- Risk: \(.risk)\n" +
+    "- Estimate: \(.estimate)\n" +
+    "- URL: \(.content.url)\n"
+  ' <<<"$item_json"
 }
 
 cmd_agents() {
@@ -233,8 +328,8 @@ Available agents:
 
 - pm
 - po
-- uxui
 - techlead
+- uxui
 - backend
 - flutter
 - security
@@ -243,11 +338,58 @@ Available agents:
 - prcreator
 - codereview
 
-Commands:
-- ./scripts/runmate-ops agent backend 2
-- ./scripts/runmate-ops start 2
-- ./scripts/runmate-ops handoff 2
+Examples:
+- bash ./scripts/runmate-ops timeline 2
+- bash ./scripts/runmate-ops run 2
+- bash ./scripts/runmate-ops approve 2
+- bash ./scripts/runmate-ops handoff 2
 EOF
+}
+
+cmd_timeline() {
+  local issue_number="${1:-}"
+  if [[ -z "$issue_number" ]]; then
+    echo "Usage: bash ./scripts/runmate-ops timeline <issue-number>" >&2
+    exit 1
+  fi
+
+  local item_json
+  item_json="$(issue_json "$issue_number")"
+  if [[ "$item_json" == "null" || -z "$item_json" ]]; then
+    echo "Issue not found in project." >&2
+    exit 1
+  fi
+
+  ensure_issue_state "$issue_number" "$item_json"
+
+  print_header
+  echo "Timeline for #$issue_number $(jq -r '.title' <<<"$item_json")"
+  echo
+
+  jq -r --arg issue "$issue_number" '
+    .issues[$issue] as $state
+    | ($state.completed | length) as $idx
+    | $state.flow
+    | to_entries[]
+    | if .key < $idx then
+        "- [x] " + .value
+      elif .key == $idx then
+        "- [>] " + .value
+      else
+        "- [ ] " + .value
+      end
+    | sub("pm$"; "PM")
+    | sub("po$"; "PO")
+    | sub("techlead$"; "Tech Lead")
+    | sub("uxui$"; "UX/UI")
+    | sub("flutter$"; "Flutter Dev")
+    | sub("backend$"; "Backend Dev")
+    | sub("security$"; "Security")
+    | sub("qa$"; "QA")
+    | sub("devops$"; "DevOps")
+    | sub("prcreator$"; "PR Creator")
+    | sub("codereview$"; "Code Review")
+  ' "$STATE_FILE"
 }
 
 cmd_agent() {
@@ -255,20 +397,29 @@ cmd_agent() {
   local issue_number="${2:-}"
 
   if [[ -z "$agent" || -z "$issue_number" ]]; then
-    echo "Usage: ./scripts/runmate-ops agent <agent> <issue-number>" >&2
+    echo "Usage: bash ./scripts/runmate-ops agent <agent> <issue-number>" >&2
     exit 1
   fi
 
-  local file
-  file="$(agent_file "$agent")" || {
+  local agent_key file item_json current_key
+  agent_key="$(normalize_agent_key "$agent")"
+  file="$(agent_file "$agent_key")" || {
     echo "Unknown agent: $agent" >&2
     exit 1
   }
 
-  local item_json
   item_json="$(issue_json "$issue_number")"
   if [[ "$item_json" == "null" || -z "$item_json" ]]; then
     echo "Issue not found in project." >&2
+    exit 1
+  fi
+
+  ensure_issue_state "$issue_number" "$item_json"
+  current_key="$(current_stage_key "$issue_number")"
+
+  if [[ -n "$current_key" && "$agent_key" != "$current_key" ]]; then
+    echo "Blocked: current allowed agent is $(agent_label "$current_key")." >&2
+    echo "Use: bash ./scripts/runmate-ops timeline $issue_number" >&2
     exit 1
   fi
 
@@ -288,7 +439,7 @@ cmd_agent() {
   cat <<EOF
 Agent briefing
 
-Agent: $agent
+Agent: $(agent_label "$agent_key")
 Issue: #$issue_number $title
 Status: $status
 Sprint: $sprint
@@ -298,6 +449,9 @@ Primary agent: $primary
 Secondary agent: $secondary
 Risk: $risk
 URL: $url
+
+Current process stage:
+- $(agent_label "$agent_key")
 
 Suggested handoff:
 $(next_handoff_for_area "$area")
@@ -321,24 +475,99 @@ Use the GitHub issue body and acceptance criteria as the source of truth.
 EOF
 }
 
-cmd_start() {
+cmd_run() {
   local issue_number="${1:-}"
   if [[ -z "$issue_number" ]]; then
-    echo "Usage: ./scripts/runmate-ops start <issue-number>" >&2
+    echo "Usage: bash ./scripts/runmate-ops run <issue-number>" >&2
     exit 1
   fi
 
-  local item_json primary_key primary_name secondary_name area
+  local item_json current_key
   item_json="$(issue_json "$issue_number")"
   if [[ "$item_json" == "null" || -z "$item_json" ]]; then
     echo "Issue not found in project." >&2
     exit 1
   fi
 
-  primary_name="$(jq -r '."primary Agent"' <<<"$item_json")"
-  secondary_name="$(jq -r '."secondary Agent"' <<<"$item_json")"
-  area="$(jq -r '.area' <<<"$item_json")"
-  primary_key="$(normalize_agent_key "$primary_name")"
+  ensure_issue_state "$issue_number" "$item_json"
+  current_key="$(current_stage_key "$issue_number")"
+
+  if [[ -z "$current_key" ]]; then
+    print_header
+    echo "Task #$issue_number is already complete in the local process flow."
+    exit 0
+  fi
+
+  cmd_agent "$current_key" "$issue_number"
+}
+
+cmd_approve() {
+  local issue_number="${1:-}"
+  local requested_agent="${2:-}"
+
+  if [[ -z "$issue_number" ]]; then
+    echo "Usage: bash ./scripts/runmate-ops approve <issue-number> [agent]" >&2
+    exit 1
+  fi
+
+  local item_json current_key requested_key next_key
+  item_json="$(issue_json "$issue_number")"
+  if [[ "$item_json" == "null" || -z "$item_json" ]]; then
+    echo "Issue not found in project." >&2
+    exit 1
+  fi
+
+  ensure_issue_state "$issue_number" "$item_json"
+  current_key="$(current_stage_key "$issue_number")"
+
+  if [[ -z "$current_key" ]]; then
+    print_header
+    echo "Task #$issue_number is already complete."
+    exit 0
+  fi
+
+  if [[ -n "$requested_agent" ]]; then
+    requested_key="$(normalize_agent_key "$requested_agent")"
+    if [[ "$requested_key" != "$current_key" ]]; then
+      echo "Blocked: current allowed agent is $(agent_label "$current_key"), not $requested_agent." >&2
+      exit 1
+    fi
+  fi
+
+  approve_stage "$issue_number" "$current_key"
+  next_key="$(next_stage_key "$issue_number")"
+
+  print_header
+  echo "Approved stage:"
+  echo "- $(agent_label "$current_key")"
+  echo
+  if [[ -n "$next_key" ]]; then
+    echo "Next unlocked stage:"
+    echo "- $(agent_label "$next_key")"
+    echo
+    echo "Next command:"
+    echo "- bash ./scripts/runmate-ops run $issue_number"
+  else
+    echo "Process complete for issue #$issue_number."
+  fi
+}
+
+cmd_start() {
+  local issue_number="${1:-}"
+  if [[ -z "$issue_number" ]]; then
+    echo "Usage: bash ./scripts/runmate-ops start <issue-number>" >&2
+    exit 1
+  fi
+
+  local item_json current_key
+  item_json="$(issue_json "$issue_number")"
+  if [[ "$item_json" == "null" || -z "$item_json" ]]; then
+    echo "Issue not found in project." >&2
+    exit 1
+  fi
+
+  ensure_issue_state "$issue_number" "$item_json"
+  current_key="$(current_stage_key "$issue_number")"
 
   print_header
   cat <<EOF
@@ -348,71 +577,87 @@ Issue:
 - #$(jq -r '.content.number' <<<"$item_json") $(jq -r '.title' <<<"$item_json")
 
 Execution lane:
-- Area: $area
-- Primary agent: $primary_name
-- Secondary agent: $secondary_name
-- Next handoff: $(next_handoff_for_area "$area")
+- Area: $(jq -r '.area' <<<"$item_json")
+- Current allowed agent: $(agent_label "$current_key")
+- Process: $(next_handoff_for_area "$(jq -r '.area' <<<"$item_json")")
 
 Suggested commands:
-- ./scripts/runmate-ops show $issue_number
-- ./scripts/runmate-ops agent $primary_key $issue_number
+- bash ./scripts/runmate-ops timeline $issue_number
+- bash ./scripts/runmate-ops run $issue_number
+- bash ./scripts/runmate-ops approve $issue_number
 EOF
 }
 
 cmd_handoff() {
   local issue_number="${1:-}"
   if [[ -z "$issue_number" ]]; then
-    echo "Usage: ./scripts/runmate-ops handoff <issue-number>" >&2
+    echo "Usage: bash ./scripts/runmate-ops handoff <issue-number>" >&2
     exit 1
   fi
 
-  local item_json area primary secondary
+  local item_json current_key next_key
   item_json="$(issue_json "$issue_number")"
   if [[ "$item_json" == "null" || -z "$item_json" ]]; then
     echo "Issue not found in project." >&2
     exit 1
   fi
 
-  area="$(jq -r '.area' <<<"$item_json")"
-  primary="$(jq -r '."primary Agent"' <<<"$item_json")"
-  secondary="$(jq -r '."secondary Agent"' <<<"$item_json")"
+  ensure_issue_state "$issue_number" "$item_json"
+  current_key="$(current_stage_key "$issue_number")"
+  next_key="$(next_stage_key "$issue_number")"
 
   print_header
-  cat <<EOF
-Handoff plan
+  echo "Handoff plan"
+  echo
+  echo "Issue:"
+  echo "- #$(jq -r '.content.number' <<<"$item_json") $(jq -r '.title' <<<"$item_json")"
+  echo
+  echo "Current stage:"
+  echo "- $(agent_label "$current_key")"
+  echo
+  if [[ -n "$next_key" ]]; then
+    echo "Next stage after approval:"
+    echo "- $(agent_label "$next_key")"
+  else
+    echo "No further stages. Task flow is complete."
+  fi
+}
 
-Issue:
-- #$(jq -r '.content.number' <<<"$item_json") $(jq -r '.title' <<<"$item_json")
+cmd_reset() {
+  local issue_number="${1:-}"
+  if [[ -z "$issue_number" ]]; then
+    echo "Usage: bash ./scripts/runmate-ops reset <issue-number>" >&2
+    exit 1
+  fi
 
-Current owner:
-- $primary
+  ensure_state_file
+  local tmp
+  tmp="$(mktemp)"
+  jq --arg issue "$issue_number" 'del(.issues[$issue])' "$STATE_FILE" >"$tmp"
+  mv "$tmp" "$STATE_FILE"
 
-Support:
-- $secondary
-
-Recommended flow:
-- $(next_handoff_for_area "$area")
-
-Recommended next actions:
-- ./scripts/runmate-ops agent $(normalize_agent_key "$primary") $issue_number
-EOF
+  print_header
+  echo "Reset local process state for issue #$issue_number."
 }
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/runmate-ops <command>
+Usage: bash ./scripts/runmate-ops <command>
 
 Commands:
-  summary      Show sprint and task summary
-  ready        List tasks ready to be pulled
-  next         Recommend the next task and handoff
-  team         Show the multi-agent operating model
-  show <id>    Show details for an issue in the board
-  agents       List available agents
-  agent <name> <id>
-               Build an agent briefing for an issue
-  start <id>   Show how to kick off work on an issue
-  handoff <id> Show the recommended handoff chain
+  summary           Show sprint and task summary
+  ready             List tasks ready to be pulled
+  next              Recommend the next task and required process
+  team              Show the multi-agent operating model
+  show <id>         Show details for an issue in the board
+  agents            List available agents
+  timeline <id>     Show the enforced process for an issue
+  run <id>          Run the next allowed agent for an issue
+  approve <id>      Approve the current stage and unlock the next one
+  agent <name> <id> Run a specific agent only if that stage is unlocked
+  start <id>        Show how to kick off an issue
+  handoff <id>      Show the current and next handoff
+  reset <id>        Reset local process state for an issue
 EOF
 }
 
@@ -427,9 +672,13 @@ main() {
     team) cmd_team ;;
     show) cmd_show "$@" ;;
     agents) cmd_agents ;;
+    timeline) cmd_timeline "$@" ;;
+    run) cmd_run "$@" ;;
+    approve) cmd_approve "$@" ;;
     agent) cmd_agent "$@" ;;
     start) cmd_start "$@" ;;
     handoff) cmd_handoff "$@" ;;
+    reset) cmd_reset "$@" ;;
     *) usage; exit 1 ;;
   esac
 }

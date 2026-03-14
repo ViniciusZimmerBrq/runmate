@@ -26,3 +26,5 @@
 
 # Logs
 *.log
+*.swp
+.runmate/
