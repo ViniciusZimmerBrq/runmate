@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Definir como o squad do RunMate funciona como um time multi-agent real, com papéis claros, handoffs previsiveis, estados de trabalho e rituais de sprint.
+Definir como o squad do RunMate funciona como um time multi-agent real, com papéis claros, handoffs previsiveis, estados de trabalho e rituais operacionais.
 
 ## Quando usar este documento
 
@@ -12,13 +12,13 @@ Use este documento para alinhar:
 - quem detalha
 - quem implementa
 - quem valida
-- como uma sprint nasce e termina
+- como um ciclo de trabalho nasce e termina
 
 ## Organograma do squad
 
 ### Core squad
 
-Responsavel pela entrega da sprint.
+Responsavel pela entrega do ciclo de trabalho.
 
 - `PM`
 - `PO`
@@ -44,7 +44,7 @@ Entra por gatilho, risco ou necessidade da entrega.
 Responsavel por:
 
 - visao do produto
-- objetivo da sprint
+- objetivo do ciclo
 - prioridade macro
 - decisao de escopo
 
@@ -64,7 +64,7 @@ Responsavel por:
 
 Nao deve:
 
-- mandar historia ambigua para a sprint
+- mandar historia ambigua para execucao
 
 ### UX/UI
 
@@ -253,7 +253,7 @@ Item em clarificacao funcional e tecnica.
 
 ### Ready
 
-Item apto a entrar na sprint ou ser puxado para execucao.
+Item apto a entrar no ciclo ou ser puxado para execucao.
 
 ### In Progress
 
@@ -285,7 +285,7 @@ Item travado por dependencia, decisao ou risco.
 - `QA -> Done`: cenarios aceitos
 - qualquer estado -> `Blocked`: impedimento explicito
 
-## Rituais oficiais da sprint
+## Rituais oficiais do squad
 
 ### 1. Backlog Refinement
 
@@ -304,7 +304,7 @@ Saida:
 
 - historias em `Ready`
 
-### 2. Sprint Planning
+### 2. Planning
 
 Objetivo:
 
@@ -321,7 +321,7 @@ Participantes:
 
 Saida:
 
-- meta da sprint
+- meta do ciclo
 - ordem de execucao
 - riscos conhecidos
 
@@ -341,7 +341,7 @@ Formato:
 
 Objetivo:
 
-validar se a sprint entregou o resultado esperado
+validar se o ciclo entregou o resultado esperado
 
 Participantes:
 

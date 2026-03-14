@@ -18,10 +18,10 @@ Avancar o produto com clareza entre contexto estavel no repositorio e execucao o
 ## Links principais
 
 - Roadmap: [ROADMAP_RUNMATE.md](/Users/user/Desktop/CODE/Run/docs/roadmap/ROADMAP_RUNMATE.md)
-- Sprint atual: GitHub Issues + GitHub Project
+- Ciclo atual: GitHub Issues + GitHub Project
 - Playbook do squad: [SQUAD_PLAYBOOK_RUNMATE.md](/Users/user/Desktop/CODE/Run/docs/process/SQUAD_PLAYBOOK_RUNMATE.md)
 - Guia visual do GitHub Projects: [GITHUB_PROJECTS_VISUAL_GUIDE.md](/Users/user/Desktop/CODE/Run/docs/process/GITHUB_PROJECTS_VISUAL_GUIDE.md)
-- Sistema de sprint no GitHub Projects: [GITHUB_PROJECTS_SYSTEM.md](/Users/user/Desktop/CODE/Run/docs/process/GITHUB_PROJECTS_SYSTEM.md)
+- Sistema operacional no GitHub Projects: [GITHUB_PROJECTS_SYSTEM.md](/Users/user/Desktop/CODE/Run/docs/process/GITHUB_PROJECTS_SYSTEM.md)
 
 ## Dashboard operacional
 
@@ -82,7 +82,7 @@ Executar o fluxo do squad sem duplicar operacao entre repo e GitHub Project.
 - acoplamento entre UI e transporte HTTP
 - persistencia inicial do usuario no backend
 
-## Ritual da sprint
+## Ritual operacional
 
 ### Refinamento
 
@@ -98,7 +98,7 @@ Executar o fluxo do squad sem duplicar operacao entre repo e GitHub Project.
 
 ### Review
 
-- validar o objetivo principal da sprint
+- validar o objetivo principal do ciclo
 - revisar PRs e entregas
 
 ### Retro
@@ -118,8 +118,8 @@ Executar o fluxo do squad sem duplicar operacao entre repo e GitHub Project.
 
 ### Views da pagina principal
 
-- Sprint atual
-- Board da sprint
+- Ciclo atual
+- Board principal
 - Itens bloqueados
 - Review e QA
 - Backlog Ready
@@ -129,8 +129,8 @@ Executar o fluxo do squad sem duplicar operacao entre repo e GitHub Project.
 ## Templates para uso
 
 - Story template: [PO_USER_STORY_TEMPLATE.md](/Users/user/Desktop/CODE/Run/docs/templates/PO_USER_STORY_TEMPLATE.md)
-- Sprint planning: [SPRINT_PLANNING_TEMPLATE.md](/Users/user/Desktop/CODE/Run/docs/templates/SPRINT_PLANNING_TEMPLATE.md)
-- Sprint execution: [SPRINT_EXECUTION_TEMPLATE.md](/Users/user/Desktop/CODE/Run/docs/templates/SPRINT_EXECUTION_TEMPLATE.md)
+- Planning template: [SPRINT_PLANNING_TEMPLATE.md](/Users/user/Desktop/CODE/Run/docs/templates/SPRINT_PLANNING_TEMPLATE.md)
+- Execution template: [SPRINT_EXECUTION_TEMPLATE.md](/Users/user/Desktop/CODE/Run/docs/templates/SPRINT_EXECUTION_TEMPLATE.md)
 
 ## Decisao de ferramenta
 
@@ -145,4 +145,4 @@ Motivos:
 
 ## Proximo passo recomendado
 
-Usar `GitHub Projects` e `Issues` como fonte oficial da sprint e manter o repositorio apenas como fonte de contexto, processo e templates.
+Usar `GitHub Projects` e `Issues` como fonte oficial da execucao e manter o repositorio apenas como fonte de contexto, processo e templates.

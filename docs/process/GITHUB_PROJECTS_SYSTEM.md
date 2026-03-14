@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Definir como o RunMate opera usando apenas `GitHub Projects`, com um fluxo simples, visualmente claro e bom para scrum.
+Definir como o RunMate opera usando apenas `GitHub Projects`, com um fluxo simples, visualmente claro e bom para execucao continua.
 
 ## Principio principal
 
@@ -31,7 +31,7 @@ Guardam:
 
 Guarda:
 
-- sprint atual
+- ciclo atual
 - board da execucao
 - ownership
 - prioridade
@@ -43,14 +43,14 @@ Guardam:
 
 - contexto
 - roadmap
-- sprint docs
+- documentacao de contexto
 - playbooks
 
 ## Modelo recomendado de campos
 
 - `Status`
 - `Priority`
-- `Sprint`
+- `Cycle`
 - `Area`
 - `Primary Agent`
 - `Secondary Agent`
@@ -83,9 +83,9 @@ preencher:
 - Priority
 - Area
 - Primary Agent
-- Sprint
+- Cycle
 
-### Quando a issue entrar na sprint
+### Quando a issue entrar em execucao
 
 - `Status = Ready`
 
@@ -112,16 +112,16 @@ preencher:
 
 ## Views recomendadas
 
-### Sprint Board
+### Main Board
 
 - tipo: Board
 - agrupamento: `Status`
-- filtro: `Sprint = Sprint 3`
+- filtro: `Cycle = Current`
 
-### Sprint Table
+### Main Table
 
 - tipo: Table
-- filtro: `Sprint = Sprint 3`
+- filtro: `Cycle = Current`
 
 ### Review and QA
 
@@ -155,7 +155,7 @@ preencher:
 ### Planning
 
 - puxar itens `Ready`
-- marcar `Sprint`
+- marcar `Cycle`
 - revisar prioridade e ordem
 
 ### Daily

@@ -38,4 +38,4 @@ RunMate e um projeto de estudo e execucao de um app de corrida com:
 
 O projeto esta estruturado para seguir um fluxo com historias no GitHub, board em GitHub Projects e handoff entre agentes por papel.
 
-O board e as issues no GitHub sao a fonte oficial da execucao da sprint. O repositorio guarda contexto, processo, templates e regras operacionais do squad.
+O board e as issues no GitHub sao a fonte oficial da execucao. O repositorio guarda contexto, processo, templates e regras operacionais do squad.
