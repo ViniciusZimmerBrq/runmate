@@ -64,17 +64,26 @@ make flutter-test # só testes Flutter
 
 ## Agentes em paralelo (worktrees)
 
-Para trabalhar em múltiplas issues simultaneamente sem conflito de arquivos, use Claude Code com worktrees — um por issue:
+Para trabalhar em múltiplas issues simultaneamente sem conflito de arquivos, crie um worktree git por issue e inicie `claude` dentro de cada um:
 
 ```bash
-# Sessão A: issue #5 (Flutter login screen)
-cd /path/to/Run && claude  # dentro do Claude: /worktree feature/issue-5
+# Criar worktree para a issue #2 (JWT)
+git worktree add .worktrees/issue-2 -b feature/issue-2-jwt
+cd .worktrees/issue-2
+claude   # Claude Code roda isolado nesta branch
 
-# Sessão B: issue #6 (Backend JWT endpoint)
-cd /path/to/Run && claude  # dentro do Claude: /worktree feature/issue-6
+# Em outro terminal, issue #5 em paralelo
+git worktree add .worktrees/issue-5 -b feature/issue-5-telas
+cd .worktrees/issue-5
+claude
 ```
 
-Cada worktree = branch isolada = agente especializado sem sobrescrever o trabalho dos outros.
+Cada worktree = branch isolada = nenhum conflito entre agentes trabalhando ao mesmo tempo.
+
+```bash
+git worktree list                        # ver worktrees ativos
+git worktree remove .worktrees/issue-2   # limpar após o merge
+```
 
 Para ver os agentes disponíveis dentro de qualquer sessão Claude Code, use `/agents`.
 

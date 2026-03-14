@@ -48,19 +48,17 @@ FASE 5 (após #7)                              │
 **Terminal A — issue #2 (JWT)**
 ```bash
 cd /path/to/Run
-claude
-# dentro do Claude:
-# /worktree feature/issue-2-jwt
-# Trabalhar na issue #2 com backend-dev + security
+git worktree add .worktrees/issue-2 -b feature/issue-2-jwt
+cd .worktrees/issue-2
+claude   # agentes: backend-dev + security
 ```
 
 **Terminal B — issue #5 (Telas Flutter)**
 ```bash
 cd /path/to/Run
-claude
-# dentro do Claude:
-# /worktree feature/issue-5-telas
-# Trabalhar na issue #5 com ux-ui + flutter-dev
+git worktree add .worktrees/issue-5 -b feature/issue-5-telas
+cd .worktrees/issue-5
+claude   # agentes: ux-ui + flutter-dev
 ```
 
 ### Fase 2 — após PR #2 mergeado em develop
@@ -68,31 +66,33 @@ claude
 **Terminal C — issue #3 (Cadastro)**
 ```bash
 cd /path/to/Run
-claude
-# /worktree feature/issue-3-cadastro
-# Trabalhar na issue #3 com backend-dev
+git worktree add .worktrees/issue-3 -b feature/issue-3-cadastro
+cd .worktrees/issue-3
+claude   # agente: backend-dev
 ```
 
 **Terminal D — issue #4 (Login)**
 ```bash
 cd /path/to/Run
-claude
-# /worktree feature/issue-4-login
-# Trabalhar na issue #4 com backend-dev
+git worktree add .worktrees/issue-4 -b feature/issue-4-login
+cd .worktrees/issue-4
+claude   # agente: backend-dev
 ```
 
 ### Fases 3, 4, 5 — sequencial (cada uma espera o merge anterior)
 
 ```bash
 # Fase 3 — issue #6
-claude  →  /worktree feature/issue-6-integracao
+git worktree add .worktrees/issue-6 -b feature/issue-6-integracao && cd .worktrees/issue-6 && claude
 
 # Fase 4 — issue #7
-claude  →  /worktree feature/issue-7-persistencia
+git worktree add .worktrees/issue-7 -b feature/issue-7-persistencia && cd .worktrees/issue-7 && claude
 
 # Fase 5 — issue #8
-claude  →  /worktree feature/issue-8-navegacao
+git worktree add .worktrees/issue-8 -b feature/issue-8-navegacao && cd .worktrees/issue-8 && claude
 ```
+
+Após cada merge: `git worktree remove .worktrees/issue-N`
 
 ---
 
