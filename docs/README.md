@@ -23,6 +23,7 @@ Organizar a navegacao da documentacao do RunMate.
 - [Squad Daily Ritual](/Users/user/Desktop/CODE/Run/docs/process/SQUAD_DAILY_RITUAL.md)
 - [GitHub Projects System](/Users/user/Desktop/CODE/Run/docs/process/GITHUB_PROJECTS_SYSTEM.md)
 - [GitHub Projects Visual Guide](/Users/user/Desktop/CODE/Run/docs/process/GITHUB_PROJECTS_VISUAL_GUIDE.md)
+- [Multi-Agent Board Operations](/Users/user/Desktop/CODE/Run/docs/process/MULTI_AGENT_BOARD_OPERATIONS.md)
 - [Git Flow](/Users/user/Desktop/CODE/Run/docs/process/GIT_GITHUB_FLOW.md)
 - [CI/CD Strategy](/Users/user/Desktop/CODE/Run/docs/process/CI_CD_STRATEGY.md)
 
