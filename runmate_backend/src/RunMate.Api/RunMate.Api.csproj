@@ -9,4 +9,8 @@
     <ProjectReference Include="../RunMate.Application/RunMate.Application.csproj" />
     <ProjectReference Include="../RunMate.Infrastructure/RunMate.Infrastructure.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
 </Project>
