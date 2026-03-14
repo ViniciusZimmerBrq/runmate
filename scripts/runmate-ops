@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+OWNER="${RUNMATE_OWNER:-ViniciusZimmerBrq}"
+REPO="${RUNMATE_REPO:-runmate}"
+PROJECT_NUMBER="${RUNMATE_PROJECT_NUMBER:-2}"
+
+require_cmd() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "Missing required command: $1" >&2
+    exit 1
+  fi
+}
+
+require_cmd gh
+require_cmd jq
+
+fetch_items() {
+  gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 100
+}
+
+print_header() {
+  printf "\nRunMate Ops\n"
+  printf "Project: %s/%s - board %s\n\n" "$OWNER" "$REPO" "$PROJECT_NUMBER"
+}
+
+cmd_summary() {
+  local items_json
+  items_json="$(fetch_items)"
+
+  local total ready in_progress review qa blocked done open_sprints
+  total="$(jq '.items | length' <<<"$items_json")"
+  ready="$(jq '[.items[] | select(.status == "Ready")] | length' <<<"$items_json")"
+  in_progress="$(jq '[.items[] | select(.status == "In Progress")] | length' <<<"$items_json")"
+  review="$(jq '[.items[] | select(.status == "Review")] | length' <<<"$items_json")"
+  qa="$(jq '[.items[] | select(.status == "QA")] | length' <<<"$items_json")"
+  blocked="$(jq '[.items[] | select(.status == "Blocked")] | length' <<<"$items_json")"
+  done="$(jq '[.items[] | select(.status == "Done")] | length' <<<"$items_json")"
+  open_sprints="$(jq '[.items[].sprint] | unique | map(select(. != null and . != "")) | length' <<<"$items_json")"
+
+  print_header
+  cat <<EOF
+Planned sprints: $open_sprints
+Total tasks: $total
+
+Status:
+- Ready: $ready
+- In Progress: $in_progress
+- Review: $review
+- QA: $qa
+- Blocked: $blocked
+- Done: $done
+
+Next commands:
+- ./scripts/runmate-ops ready
+- ./scripts/runmate-ops next
+- ./scripts/runmate-ops team
+- ./scripts/runmate-ops show 2
+EOF
+}
+
+cmd_ready() {
+  local items_json
+  items_json="$(fetch_items)"
+
+  print_header
+  jq -r '
+    .items
+    | map(select(.status == "Ready"))
+    | sort_by(.priority, .estimate, .content.number)
+    | if length == 0 then
+        "No tasks in Ready."
+      else
+        .[]
+        | "- #\(.content.number) [\(.priority)] \(.title)\n  Sprint: \(.sprint) | Area: \(.area) | Owner: \(.["primary Agent"]) | Support: \(.["secondary Agent"]) | Risk: \(.risk)"
+      end
+  ' <<<"$items_json"
+}
+
+cmd_next() {
+  local items_json
+  items_json="$(fetch_items)"
+
+  print_header
+  jq -r '
+    .items
+    | map(select(.status == "Ready"))
+    | sort_by(.priority, .estimate, .content.number)
+    | .[0] as $item
+    | if $item == null then
+        "No task ready to pull."
+      else
+        "Recommended next task:\n" +
+        "- #\($item.content.number) \($item.title)\n" +
+        "- Priority: \($item.priority)\n" +
+        "- Area: \($item.area)\n" +
+        "- Primary agent: \($item["primary Agent"])\n" +
+        "- Secondary agent: \($item["secondary Agent"])\n" +
+        "- Risk: \($item.risk)\n" +
+        "- Estimate: \($item.estimate)\n" +
+        "\nNext handoff:\n" +
+        (if $item.area == "Backend" then
+          "Tech Lead -> Backend Dev -> Security -> PR Creator -> QA"
+        elif $item.area == "Flutter" then
+          "Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator"
+        elif $item.area == "Product" then
+          "PM -> PO -> Tech Lead"
+        else
+          $item["primary Agent"] + " -> " + $item["secondary Agent"]
+        end)
+      end
+  ' <<<"$items_json"
+}
+
+cmd_team() {
+  print_header
+  cat <<'EOF'
+Multi-agent operating flow:
+
+- Product: PM -> PO -> Tech Lead
+- Backend: Tech Lead -> Backend Dev -> Security -> PR Creator -> QA
+- Flutter: Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator
+- Security: enters on auth, token, secret, session, storage
+- DevOps: enters on CI/CD, environment, release, automation
+
+Movement rules:
+- Ready: item is clear and can be pulled
+- In Progress: primary agent owns execution
+- Review: PR is open
+- QA: validation is in progress
+- Blocked: item is stuck and Risk must be updated
+- Done: merged and validated
+EOF
+}
+
+cmd_show() {
+  local issue_number="${1:-}"
+  if [[ -z "$issue_number" ]]; then
+    echo "Usage: ./scripts/runmate-ops show <issue-number>" >&2
+    exit 1
+  fi
+
+  local items_json
+  items_json="$(fetch_items)"
+
+  print_header
+  jq -r --argjson issue "$issue_number" '
+    .items
+    | map(select(.content.number == $issue))
+    | .[0] as $item
+    | if $item == null then
+        "Issue not found in project."
+      else
+        "#\($item.content.number) \($item.title)\n" +
+        "- Status: \($item.status)\n" +
+        "- Sprint: \($item.sprint)\n" +
+        "- Priority: \($item.priority)\n" +
+        "- Area: \($item.area)\n" +
+        "- Primary agent: \($item["primary Agent"])\n" +
+        "- Secondary agent: \($item["secondary Agent"])\n" +
+        "- Risk: \($item.risk)\n" +
+        "- Estimate: \($item.estimate)\n" +
+        "- URL: \($item.content.url)\n"
+      end
+  ' <<<"$items_json"
+}
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/runmate-ops <command>
+
+Commands:
+  summary      Show sprint and task summary
+  ready        List tasks ready to be pulled
+  next         Recommend the next task and handoff
+  team         Show the multi-agent operating model
+  show <id>    Show details for an issue in the board
+EOF
+}
+
+main() {
+  local cmd="${1:-summary}"
+  shift || true
+
+  case "$cmd" in
+    summary) cmd_summary ;;
+    ready) cmd_ready ;;
+    next) cmd_next ;;
+    team) cmd_team ;;
+    show) cmd_show "$@" ;;
+    *) usage; exit 1 ;;
+  esac
+}
+
+main "$@"
