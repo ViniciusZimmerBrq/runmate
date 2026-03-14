@@ -1,0 +1,4 @@
+Endpoints dedicados de autenticacao entram aqui.
+Sugestao para Sprint 2:
+- mapear POST /api/auth/register
+- mapear POST /api/auth/login

@@ -1,0 +1,44 @@
+name: PR Quality
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            refactor
+            test
+            chore
+            ci
+
+  pr-size-warning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check diff size
+        run: |
+          CHANGED_LINES=$(git diff --shortstat ${{ github.event.pull_request.base.sha }}...HEAD | awk '{print $4 + $6}')
+          echo "Changed lines: ${CHANGED_LINES:-0}"
+          if [ "${CHANGED_LINES:-0}" -gt 800 ]; then
+            echo "PR too large. Please split if possible."
+            exit 1
+          fi

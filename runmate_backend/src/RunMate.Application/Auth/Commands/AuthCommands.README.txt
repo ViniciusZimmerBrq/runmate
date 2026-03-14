@@ -1,0 +1,4 @@
+Casos de uso de auth entram aqui.
+Sugestao para Sprint 2:
+- RegisterUserCommandHandler
+- LoginUserCommandHandler

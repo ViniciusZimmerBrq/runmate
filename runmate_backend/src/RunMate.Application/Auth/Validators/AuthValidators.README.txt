@@ -1,0 +1,5 @@
+Validadores de auth entram aqui.
+Sugestao para Sprint 2:
+- RegisterRequestValidator
+- LoginRequestValidator
+- PasswordPolicyValidator

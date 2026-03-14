@@ -1,0 +1,26 @@
+.DS_Store
+.idea/
+.vscode/
+
+# Flutter
+**/.dart_tool/
+**/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# Android / iOS
+**/android/.gradle/
+**/android/local.properties
+**/ios/Pods/
+**/ios/.symlinks/
+
+# .NET
+**/bin/
+**/obj/
+
+# Environment
+*.env
+*.env.*
+
+# Logs
+*.log

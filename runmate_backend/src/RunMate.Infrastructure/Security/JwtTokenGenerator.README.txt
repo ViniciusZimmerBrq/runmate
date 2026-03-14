@@ -1,0 +1,3 @@
+Implementacao concreta do gerador de JWT entra aqui.
+Nao hardcode secrets.
+Ler configuracao do ambiente.

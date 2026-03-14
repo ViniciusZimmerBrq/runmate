@@ -1,0 +1,33 @@
+name: Technical Task
+description: Track architecture, refactor, CI or security tasks
+title: "[Tech]: "
+labels:
+  - tech-debt
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What technical outcome do we need?
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Relevant architectural or implementation details.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this is done?
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - High
+        - Medium
+        - Low
