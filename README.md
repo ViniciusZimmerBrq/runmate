@@ -27,7 +27,6 @@ RunMate e um projeto de estudo e execucao de um app de corrida com:
 
 - [Project Context](/Users/user/Desktop/CODE/Run/docs/context/PROJECT_CONTEXT.md)
 - [Roadmap](/Users/user/Desktop/CODE/Run/docs/roadmap/ROADMAP_RUNMATE.md)
-- [Sprint 3](/Users/user/Desktop/CODE/Run/docs/sprints/SPRINT_3_AUTH_IMPLEMENTATION.md)
 
 ### Arquitetura
 
@@ -37,6 +36,6 @@ RunMate e um projeto de estudo e execucao de um app de corrida com:
 
 ## Estado atual
 
-O projeto esta estruturado para seguir um fluxo de sprint com historias no GitHub, board em GitHub Projects e handoff entre agentes por papel.
+O projeto esta estruturado para seguir um fluxo com historias no GitHub, board em GitHub Projects e handoff entre agentes por papel.
 
-O foco atual de produto esta em autenticacao real ponta a ponta e maturidade do processo do squad.
+O board e as issues no GitHub sao a fonte oficial da execucao da sprint. O repositorio guarda contexto, processo, templates e regras operacionais do squad.

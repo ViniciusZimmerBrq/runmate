@@ -4,40 +4,37 @@
 
 **Produto:** RunMate  
 **Missao:** criar um app de corrida com foco em autenticacao robusta, boa arquitetura e evolucao fluida.  
-**Fase atual:** Sprint 3 - Auth real ponta a ponta
+**Fase atual:** execucao via GitHub Project + backlog em issues
 
 ## Objetivo atual
 
-Entregar autenticacao real de ponta a ponta:
+Avancar o produto com clareza entre contexto estavel no repositorio e execucao operacional no GitHub:
 
-- cadastro real
-- login real
-- sessao persistida
-- navegacao protegida
+- backlog claro
+- historias refinadas
+- handoffs consistentes entre agentes
+- execucao rastreavel no board
 
 ## Links principais
 
 - Roadmap: [ROADMAP_RUNMATE.md](/Users/user/Desktop/CODE/Run/docs/roadmap/ROADMAP_RUNMATE.md)
-- Sprint atual: [SPRINT_3_AUTH_IMPLEMENTATION.md](/Users/user/Desktop/CODE/Run/docs/sprints/SPRINT_3_AUTH_IMPLEMENTATION.md)
+- Sprint atual: GitHub Issues + GitHub Project
 - Playbook do squad: [SQUAD_PLAYBOOK_RUNMATE.md](/Users/user/Desktop/CODE/Run/docs/process/SQUAD_PLAYBOOK_RUNMATE.md)
 - Guia visual do GitHub Projects: [GITHUB_PROJECTS_VISUAL_GUIDE.md](/Users/user/Desktop/CODE/Run/docs/process/GITHUB_PROJECTS_VISUAL_GUIDE.md)
 - Sistema de sprint no GitHub Projects: [GITHUB_PROJECTS_SYSTEM.md](/Users/user/Desktop/CODE/Run/docs/process/GITHUB_PROJECTS_SYSTEM.md)
 
-## Dashboard da sprint
+## Dashboard operacional
 
-### Meta da sprint
+### Meta atual
 
-Transformar a base atual em autenticacao funcional, segura e integrada.
+Executar o fluxo do squad sem duplicar operacao entre repo e GitHub Project.
 
 ### Entregas principais
 
-- JWT real no backend
-- cadastro real
-- login real
-- telas reais de auth
-- integracao Flutter + API
-- sessao persistida
-- navegacao protegida
+- historias prontas para execucao
+- dependencias visiveis no board
+- criterios de aceite claros
+- handoff registravel entre agentes
 
 ### Indicadores para acompanhar
 
@@ -68,13 +65,8 @@ Transformar a base atual em autenticacao funcional, segura e integrada.
 
 ### Ready agora
 
-- US-301 - JWT real no backend
-- US-302 - Cadastro real no backend
-- US-303 - Login real no backend
-- US-304 - Telas reais de login e cadastro
-- US-305 - Integracao Flutter com API de auth
-- US-306 - Persistir sessao no app
-- US-307 - Navegacao protegida
+- puxar do GitHub Project
+- priorizar por `Ready`, `Priority` e dependencias
 
 ## Qualidade e risco
 
@@ -138,7 +130,7 @@ Transformar a base atual em autenticacao funcional, segura e integrada.
 
 - Story template: [PO_USER_STORY_TEMPLATE.md](/Users/user/Desktop/CODE/Run/docs/templates/PO_USER_STORY_TEMPLATE.md)
 - Sprint planning: [SPRINT_PLANNING_TEMPLATE.md](/Users/user/Desktop/CODE/Run/docs/templates/SPRINT_PLANNING_TEMPLATE.md)
-- Cards da Sprint 3: [SPRINT_3_NOTION_CARDS.md](/Users/user/Desktop/CODE/Run/docs/templates/SPRINT_3_NOTION_CARDS.md)
+- Sprint execution: [SPRINT_EXECUTION_TEMPLATE.md](/Users/user/Desktop/CODE/Run/docs/templates/SPRINT_EXECUTION_TEMPLATE.md)
 
 ## Decisao de ferramenta
 
@@ -153,4 +145,4 @@ Motivos:
 
 ## Proximo passo recomendado
 
-Criar um board da Sprint 3 em `GitHub Projects` e usar apenas o repositorio como fonte de contexto e documentacao.
+Usar `GitHub Projects` e `Issues` como fonte oficial da sprint e manter o repositorio apenas como fonte de contexto, processo e templates.

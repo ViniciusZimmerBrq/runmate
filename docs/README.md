@@ -26,12 +26,9 @@ Organizar a navegacao da documentacao do RunMate.
 - [Git Flow](/Users/user/Desktop/CODE/Run/docs/process/GIT_GITHUB_FLOW.md)
 - [CI/CD Strategy](/Users/user/Desktop/CODE/Run/docs/process/CI_CD_STRATEGY.md)
 
-## Roadmap e sprints
+## Roadmap
 
 - [Roadmap](/Users/user/Desktop/CODE/Run/docs/roadmap/ROADMAP_RUNMATE.md)
-- [Sprint 2](/Users/user/Desktop/CODE/Run/docs/sprints/SPRINT_2_AUTH.md)
-- [Sprint 3](/Users/user/Desktop/CODE/Run/docs/sprints/SPRINT_3_AUTH_IMPLEMENTATION.md)
-- [Sprint 3 Operational Runbook](/Users/user/Desktop/CODE/Run/docs/sprints/SPRINT_3_OPERATIONAL_RUNBOOK.md)
 
 ## Templates
 
@@ -40,4 +37,3 @@ Organizar a navegacao da documentacao do RunMate.
 - [Sprint Planning Template](/Users/user/Desktop/CODE/Run/docs/templates/SPRINT_PLANNING_TEMPLATE.md)
 - [Sprint Execution Template](/Users/user/Desktop/CODE/Run/docs/templates/SPRINT_EXECUTION_TEMPLATE.md)
 - [GitHub Project Fields](/Users/user/Desktop/CODE/Run/docs/templates/GITHUB_PROJECT_FIELDS.md)
-- [Sprint 3 GitHub Project Cards](/Users/user/Desktop/CODE/Run/docs/templates/SPRINT_3_GITHUB_PROJECT_CARDS.md)
