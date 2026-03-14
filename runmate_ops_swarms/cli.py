@@ -108,6 +108,19 @@ def fetch_items() -> dict:
     )
 
 
+def get_items_for_sprint(sprint_name: str) -> list[dict]:
+    items = fetch_items()["items"]
+    selected = [item for item in items if item.get("sprint") == sprint_name]
+    selected.sort(
+        key=lambda item: (
+            item.get("priority", ""),
+            item.get("estimate", 0),
+            item["content"]["number"],
+        )
+    )
+    return selected
+
+
 def get_issue(issue_number: int) -> dict:
     items = fetch_items()["items"]
     for item in items:
@@ -369,6 +382,48 @@ def run_remaining_swarm(issue_number: int) -> None:
     print(result)
 
 
+def sprint_start_report(sprint_name: str) -> str:
+    items = get_items_for_sprint(sprint_name)
+    if not items:
+        return f"No tasks found for sprint {sprint_name}."
+
+    lines = [
+        f"Sprint start plan: {sprint_name}",
+        "",
+        f"Total tasks: {len(items)}",
+        "",
+        "Kickoff queue:",
+    ]
+
+    for item in items:
+        issue_number = item["content"]["number"]
+        ensure_issue_state(issue_number, item)
+        current = current_stage(issue_number, item)
+        lines.append(
+            f"- #{issue_number} {item['title']}"
+            f" | Area: {item['area']}"
+            f" | Primary: {item['primary Agent']}"
+            f" | Current stage: {AGENT_LABELS[current] if current else 'Complete'}"
+        )
+
+    lines.extend(
+        [
+            "",
+            "Suggested sprint start order:",
+            "- 1. PM and PO prepare the top Ready items",
+            "- 2. Tech Lead reviews the first backend and flutter items",
+            "- 3. Backend and Flutter lanes begin after Tech Lead handoff",
+            "",
+            "Suggested commands:",
+        ]
+    )
+
+    for item in items[:3]:
+        lines.append(f"- python3 -m runmate_ops_swarms.cli run {item['content']['number']}")
+
+    return "\n".join(lines)
+
+
 def cmd_summary(_: argparse.Namespace) -> None:
     items = fetch_items()["items"]
     print_header()
@@ -435,7 +490,8 @@ def cmd_team(_: argparse.Namespace) -> None:
         "- run <id> only unlocks the next allowed agent\n"
         "- approve <id> closes the current stage and unlocks the next\n"
         "- swarm <id> runs the remaining allowed chain with Swarms SequentialWorkflow\n"
-        "- timeline <id> shows the full process for a task"
+        "- timeline <id> shows the full process for a task\n"
+        "- sprint-start <name> prepares the kickoff for a whole sprint"
     )
 
 
@@ -465,7 +521,8 @@ def cmd_agents(_: argparse.Namespace) -> None:
         "- python3 -m runmate_ops_swarms.cli timeline 2\n"
         "- python3 -m runmate_ops_swarms.cli run 2\n"
         "- python3 -m runmate_ops_swarms.cli approve 2\n"
-        "- python3 -m runmate_ops_swarms.cli swarm 2"
+        "- python3 -m runmate_ops_swarms.cli swarm 2\n"
+        "- python3 -m runmate_ops_swarms.cli sprint-start \"Sprint 3\""
     )
 
 
@@ -558,6 +615,11 @@ def cmd_reset(args: argparse.Namespace) -> None:
     print(f"Reset local process state for issue #{args.issue}.")
 
 
+def cmd_sprint_start(args: argparse.Namespace) -> None:
+    print_header()
+    print(sprint_start_report(args.sprint))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="runmate-ops")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -567,6 +629,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("next").set_defaults(func=cmd_next)
     sub.add_parser("team").set_defaults(func=cmd_team)
     sub.add_parser("agents").set_defaults(func=cmd_agents)
+
+    p = sub.add_parser("sprint-start")
+    p.add_argument("sprint")
+    p.set_defaults(func=cmd_sprint_start)
 
     for name, func in {
         "show": cmd_show,
