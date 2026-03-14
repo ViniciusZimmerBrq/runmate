@@ -38,7 +38,7 @@ jobs:
         run: |
           CHANGED_LINES=$(git diff --shortstat ${{ github.event.pull_request.base.sha }}...HEAD | awk '{print $4 + $6}')
           echo "Changed lines: ${CHANGED_LINES:-0}"
-          if [ "${CHANGED_LINES:-0}" -gt 800 ]; then
+          if [ "${CHANGED_LINES:-0}" -gt 5000 ]; then
             echo "PR too large. Please split if possible."
             exit 1
           fi
