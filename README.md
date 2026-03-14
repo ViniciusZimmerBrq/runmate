@@ -1,65 +1,41 @@
 # RunMate
 
-RunMate e um projeto de estudo e execucao de um app de corrida com:
+App de corrida com Flutter mobile + ASP.NET Core backend, operado por um squad multi-agente Claude Code.
 
-- `Flutter` no app mobile
-- `ASP.NET Core` em `C#` no backend
-- `GitHub Projects` para operacao Scrum
-- um squad multi-agent para produto, design, engenharia, QA e governanca
+## Estrutura
 
-## Estrutura principal
-
-- [agents](/Users/user/Desktop/CODE/Run/agents)
-- [docs](/Users/user/Desktop/CODE/Run/docs)
-- [runmate_app](/Users/user/Desktop/CODE/Run/runmate_app)
-- [runmate_backend](/Users/user/Desktop/CODE/Run/runmate_backend)
-
-## Comece por aqui
-
-### Time e processo
-
-- [Agent Prompts](/Users/user/Desktop/CODE/Run/AGENT_PROMPTS_RUNMATE.md)
-- [Squad Operating Model](/Users/user/Desktop/CODE/Run/docs/process/SQUAD_OPERATING_MODEL.md)
-- [Story Workflow](/Users/user/Desktop/CODE/Run/docs/process/STORY_WORKFLOW.md)
-- [GitHub Projects System](/Users/user/Desktop/CODE/Run/docs/process/GITHUB_PROJECTS_SYSTEM.md)
-
-### Produto
-
-- [Project Context](/Users/user/Desktop/CODE/Run/docs/context/PROJECT_CONTEXT.md)
-- [Roadmap](/Users/user/Desktop/CODE/Run/docs/roadmap/ROADMAP_RUNMATE.md)
-
-### Arquitetura
-
-- [Project Structure](/Users/user/Desktop/CODE/Run/docs/architecture/PROJECT_STRUCTURE.md)
-- [Secure Auth Architecture](/Users/user/Desktop/CODE/Run/docs/architecture/SECURE_AUTH_ARCHITECTURE.md)
-- [Secrets and Env Setup](/Users/user/Desktop/CODE/Run/docs/architecture/SECRETS_AND_ENV_SETUP.md)
-
-## Estado atual
-
-O projeto esta estruturado para seguir um fluxo com historias no GitHub, board em GitHub Projects e handoff entre agentes por papel.
-
-O board e as issues no GitHub sao a fonte oficial da execucao. O repositorio guarda contexto, processo, templates e regras operacionais do squad.
-
-## Operacao via terminal
-
-Use o hub de terminal para visualizar board, fila de tarefas e handoff entre agents:
-
-```bash
-./scripts/runmate-ops summary
-./scripts/runmate-ops ready
-./scripts/runmate-ops next
-./scripts/runmate-ops show 2
-./scripts/runmate-ops team
-./scripts/runmate-ops timeline 2
-./scripts/runmate-ops run 2
-./scripts/runmate-ops approve 2
-./scripts/runmate-ops swarm 2
+```
+Run/
+  runmate_app/       # Flutter mobile (Dart, SDK ^3.7.2)
+  runmate_backend/   # ASP.NET Core C# (RunMate.sln)
+  .claude/agents/    # 10 subagentes Claude Code nativos
+  .github/           # Workflows CI/CD + templates de issue e PR
+  docs/              # Arquitetura, contexto, processo e roadmap
+  Makefile           # Dev local em paralelo
+  CLAUDE.md          # Guia para Claude Code
 ```
 
-O hub agora e baseado em Python + `Swarms`, com um wrapper simples em `scripts/runmate-ops`.
+## Dev local
 
-O estado local por issue continua em `.runmate/ops-state.json`, liberando os agents em ordem:
+```bash
+make dev          # backend :5000 + Flutter app em paralelo
+make test         # todos os testes
+```
 
-- Product: `PM -> PO -> Tech Lead`
-- Flutter: `PM -> PO -> Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator`
-- Backend: `PM -> PO -> Tech Lead -> Backend Dev -> Security -> QA -> PR Creator`
+Veja `CLAUDE.md` para comandos completos, arquitetura e guia de agentes em paralelo com worktrees.
+
+## Documentação
+
+| Categoria | Arquivo |
+|-----------|---------|
+| Contexto do produto | `docs/context/PROJECT_CONTEXT.md` |
+| Roadmap | `docs/roadmap/ROADMAP_RUNMATE.md` |
+| Estrutura do projeto | `docs/architecture/PROJECT_STRUCTURE.md` |
+| Arquitetura de auth | `docs/architecture/SECURE_AUTH_ARCHITECTURE.md` |
+| Secrets e env | `docs/architecture/SECRETS_AND_ENV_SETUP.md` |
+| Story workflow | `docs/process/STORY_WORKFLOW.md` |
+| Handoff de agentes | `docs/process/AGENT_HANDOFF_CONTRACT.md` |
+| Git & GitHub flow | `docs/process/GIT_GITHUB_FLOW.md` |
+| CI/CD | `docs/process/CI_CD_STRATEGY.md` |
+| Squad operating model | `docs/process/SQUAD_OPERATING_MODEL.md` |
+| GitHub Projects | `docs/process/GITHUB_PROJECTS_SYSTEM.md` |
