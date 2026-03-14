@@ -5,6 +5,7 @@ set -euo pipefail
 OWNER="${RUNMATE_OWNER:-ViniciusZimmerBrq}"
 REPO="${RUNMATE_REPO:-runmate}"
 PROJECT_NUMBER="${RUNMATE_PROJECT_NUMBER:-2}"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -18,6 +19,65 @@ require_cmd jq
 
 fetch_items() {
   gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 100
+}
+
+agent_file() {
+  case "$1" in
+    pm) echo "$ROOT_DIR/agents/PM_AGENT.md" ;;
+    po) echo "$ROOT_DIR/agents/PO_AGENT.md" ;;
+    ux|uxui|ux/ui) echo "$ROOT_DIR/agents/UX_UI_AGENT.md" ;;
+    tech|techlead) echo "$ROOT_DIR/agents/TECH_LEAD_AGENT.md" ;;
+    flutter) echo "$ROOT_DIR/agents/FLUTTER_DEV_AGENT.md" ;;
+    backend) echo "$ROOT_DIR/agents/BACKEND_CSHARP_AGENT.md" ;;
+    security) echo "$ROOT_DIR/agents/SECURITY_AGENT.md" ;;
+    qa) echo "$ROOT_DIR/agents/QA_AGENT.md" ;;
+    devops) echo "$ROOT_DIR/agents/DEVOPS_AGENT.md" ;;
+    pr|prcreator) echo "$ROOT_DIR/agents/PR_CREATOR_AGENT.md" ;;
+    review|codereview) echo "$ROOT_DIR/agents/CODE_REVIEW_AGENT.md" ;;
+    *) return 1 ;;
+  esac
+}
+
+normalize_agent_key() {
+  case "$1" in
+    "PM") echo "pm" ;;
+    "PO") echo "po" ;;
+    "UX/UI") echo "uxui" ;;
+    "Tech Lead") echo "techlead" ;;
+    "Flutter Dev") echo "flutter" ;;
+    "Backend Dev") echo "backend" ;;
+    "Security") echo "security" ;;
+    "QA") echo "qa" ;;
+    "DevOps") echo "devops" ;;
+    "PR Creator") echo "prcreator" ;;
+    "Code Review") echo "codereview" ;;
+    *) echo "" ;;
+  esac
+}
+
+extract_prompt_block() {
+  local file="$1"
+  awk '
+    /^```text$/ {capture=1; next}
+    /^```$/ && capture {capture=0; exit}
+    capture {print}
+  ' "$file"
+}
+
+issue_json() {
+  local issue_number="$1"
+  fetch_items | jq -c --argjson issue "$issue_number" '
+    .items | map(select(.content.number == $issue)) | .[0]
+  '
+}
+
+next_handoff_for_area() {
+  case "$1" in
+    "Backend") echo "Tech Lead -> Backend Dev -> Security -> PR Creator -> QA" ;;
+    "Flutter") echo "Tech Lead -> UX/UI -> Flutter Dev -> QA -> PR Creator" ;;
+    "Product") echo "PM -> PO -> Tech Lead" ;;
+    *) echo "Primary Agent -> Secondary Agent" ;;
+  esac
 }
 
 print_header() {
@@ -166,6 +226,178 @@ cmd_show() {
   ' <<<"$items_json"
 }
 
+cmd_agents() {
+  print_header
+  cat <<'EOF'
+Available agents:
+
+- pm
+- po
+- uxui
+- techlead
+- backend
+- flutter
+- security
+- qa
+- devops
+- prcreator
+- codereview
+
+Commands:
+- ./scripts/runmate-ops agent backend 2
+- ./scripts/runmate-ops start 2
+- ./scripts/runmate-ops handoff 2
+EOF
+}
+
+cmd_agent() {
+  local agent="${1:-}"
+  local issue_number="${2:-}"
+
+  if [[ -z "$agent" || -z "$issue_number" ]]; then
+    echo "Usage: ./scripts/runmate-ops agent <agent> <issue-number>" >&2
+    exit 1
+  fi
+
+  local file
+  file="$(agent_file "$agent")" || {
+    echo "Unknown agent: $agent" >&2
+    exit 1
+  }
+
+  local item_json
+  item_json="$(issue_json "$issue_number")"
+  if [[ "$item_json" == "null" || -z "$item_json" ]]; then
+    echo "Issue not found in project." >&2
+    exit 1
+  fi
+
+  local title area status sprint priority risk primary secondary url prompt
+  title="$(jq -r '.title' <<<"$item_json")"
+  area="$(jq -r '.area' <<<"$item_json")"
+  status="$(jq -r '.status' <<<"$item_json")"
+  sprint="$(jq -r '.sprint' <<<"$item_json")"
+  priority="$(jq -r '.priority' <<<"$item_json")"
+  risk="$(jq -r '.risk' <<<"$item_json")"
+  primary="$(jq -r '."primary Agent"' <<<"$item_json")"
+  secondary="$(jq -r '."secondary Agent"' <<<"$item_json")"
+  url="$(jq -r '.content.url' <<<"$item_json")"
+  prompt="$(extract_prompt_block "$file")"
+
+  print_header
+  cat <<EOF
+Agent briefing
+
+Agent: $agent
+Issue: #$issue_number $title
+Status: $status
+Sprint: $sprint
+Priority: $priority
+Area: $area
+Primary agent: $primary
+Secondary agent: $secondary
+Risk: $risk
+URL: $url
+
+Suggested handoff:
+$(next_handoff_for_area "$area")
+
+Prompt:
+
+$prompt
+
+Task context:
+
+- Issue title: $title
+- Area: $area
+- Status: $status
+- Sprint: $sprint
+- Priority: $priority
+- Risk: $risk
+- Primary agent: $primary
+- Secondary agent: $secondary
+
+Use the GitHub issue body and acceptance criteria as the source of truth.
+EOF
+}
+
+cmd_start() {
+  local issue_number="${1:-}"
+  if [[ -z "$issue_number" ]]; then
+    echo "Usage: ./scripts/runmate-ops start <issue-number>" >&2
+    exit 1
+  fi
+
+  local item_json primary_key primary_name secondary_name area
+  item_json="$(issue_json "$issue_number")"
+  if [[ "$item_json" == "null" || -z "$item_json" ]]; then
+    echo "Issue not found in project." >&2
+    exit 1
+  fi
+
+  primary_name="$(jq -r '."primary Agent"' <<<"$item_json")"
+  secondary_name="$(jq -r '."secondary Agent"' <<<"$item_json")"
+  area="$(jq -r '.area' <<<"$item_json")"
+  primary_key="$(normalize_agent_key "$primary_name")"
+
+  print_header
+  cat <<EOF
+Start task
+
+Issue:
+- #$(jq -r '.content.number' <<<"$item_json") $(jq -r '.title' <<<"$item_json")
+
+Execution lane:
+- Area: $area
+- Primary agent: $primary_name
+- Secondary agent: $secondary_name
+- Next handoff: $(next_handoff_for_area "$area")
+
+Suggested commands:
+- ./scripts/runmate-ops show $issue_number
+- ./scripts/runmate-ops agent $primary_key $issue_number
+EOF
+}
+
+cmd_handoff() {
+  local issue_number="${1:-}"
+  if [[ -z "$issue_number" ]]; then
+    echo "Usage: ./scripts/runmate-ops handoff <issue-number>" >&2
+    exit 1
+  fi
+
+  local item_json area primary secondary
+  item_json="$(issue_json "$issue_number")"
+  if [[ "$item_json" == "null" || -z "$item_json" ]]; then
+    echo "Issue not found in project." >&2
+    exit 1
+  fi
+
+  area="$(jq -r '.area' <<<"$item_json")"
+  primary="$(jq -r '."primary Agent"' <<<"$item_json")"
+  secondary="$(jq -r '."secondary Agent"' <<<"$item_json")"
+
+  print_header
+  cat <<EOF
+Handoff plan
+
+Issue:
+- #$(jq -r '.content.number' <<<"$item_json") $(jq -r '.title' <<<"$item_json")
+
+Current owner:
+- $primary
+
+Support:
+- $secondary
+
+Recommended flow:
+- $(next_handoff_for_area "$area")
+
+Recommended next actions:
+- ./scripts/runmate-ops agent $(normalize_agent_key "$primary") $issue_number
+EOF
+}
+
 usage() {
   cat <<'EOF'
 Usage: ./scripts/runmate-ops <command>
@@ -176,6 +408,11 @@ Commands:
   next         Recommend the next task and handoff
   team         Show the multi-agent operating model
   show <id>    Show details for an issue in the board
+  agents       List available agents
+  agent <name> <id>
+               Build an agent briefing for an issue
+  start <id>   Show how to kick off work on an issue
+  handoff <id> Show the recommended handoff chain
 EOF
 }
 
@@ -189,6 +426,10 @@ main() {
     next) cmd_next ;;
     team) cmd_team ;;
     show) cmd_show "$@" ;;
+    agents) cmd_agents ;;
+    agent) cmd_agent "$@" ;;
+    start) cmd_start "$@" ;;
+    handoff) cmd_handoff "$@" ;;
     *) usage; exit 1 ;;
   esac
 }
