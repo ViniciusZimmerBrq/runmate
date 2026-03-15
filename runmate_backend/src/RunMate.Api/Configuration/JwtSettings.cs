@@ -1,10 +1,3 @@
-namespace RunMate.Api.Configuration;
-
-public sealed class JwtSettings
-{
-    public const string SectionName = "Jwt";
-
-    public string? Secret { get; init; }
-    public string Issuer { get; init; } = string.Empty;
-    public string Audience { get; init; } = string.Empty;
-}
+// This file is superseded by RunMate.Infrastructure.Security.JwtOptions.
+// JwtOptions is registered via Infrastructure.AddInfrastructure() and bound
+// to the "Jwt" configuration section. Do not use JwtSettings in new code.
