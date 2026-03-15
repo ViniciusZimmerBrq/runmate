@@ -1,48 +1,66 @@
-using Microsoft.AspNetCore.Mvc;
-using RunMate.Api.Configuration;
+using RunMate.Api.Endpoints;
 using RunMate.Application.Dtos;
+using RunMate.Application.DependencyInjection;
+using RunMate.Infrastructure.DependencyInjection;
+using RunMate.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var jwtSettings = builder.Configuration
-    .GetSection(JwtSettings.SectionName)
-    .Get<JwtSettings>() ?? new JwtSettings();
-
-if (!builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(jwtSettings.Secret))
+// --- JWT secret guard: fail fast in non-development without a configured secret ---
+var jwtSecret = builder.Configuration["Jwt:Secret"];
+if (!builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(jwtSecret))
 {
     throw new InvalidOperationException(
-        "JWT secret is missing. Configure Jwt:Secret or JWT__Secret before starting the API.");
+        "JWT secret is missing. Set Jwt:Secret in configuration or the JWT__Secret environment variable before starting the API.");
 }
 
-builder.Services.AddControllers();
+// --- Service registration ---
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new() { Title = "RunMate API", Version = "v1" });
+});
 
 var app = builder.Build();
 
+// --- Middleware ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+// --- Health endpoints ---
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
+    .WithTags("Health");
 
-app.MapGet("/health/config", () => Results.Ok(new
+if (app.Environment.IsDevelopment())
 {
-    JwtIssuer = jwtSettings.Issuer,
-    JwtAudience = jwtSettings.Audience,
-    HasJwtSecret = !string.IsNullOrWhiteSpace(jwtSettings.Secret),
-    Environment = builder.Environment.EnvironmentName,
-}));
+    app.MapGet("/health/config", (IConfiguration config) =>
+    {
+        var opts = config.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+        return Results.Ok(new
+        {
+            JwtIssuer = opts.Issuer,
+            JwtAudience = opts.Audience,
+            HasJwtSecret = !string.IsNullOrWhiteSpace(opts.Secret),
+            Environment = app.Environment.EnvironmentName,
+        });
+    }).WithTags("Health");
+}
 
+// --- Stub endpoints (kept for Flutter dashboard/workout screens) ---
 app.MapGet("/api/dashboard/weekly-summary", () =>
     Results.Ok(
         new WeeklySummaryDto(
             DistanceInKm: 18.4,
             CompletedWorkouts: 4,
             AveragePace: "5:32/km",
-            GoalProgress: 74)));
+            GoalProgress: 74)))
+    .WithTags("Dashboard");
 
 app.MapGet("/api/workouts", () =>
     Results.Ok(
@@ -55,28 +73,10 @@ app.MapGet("/api/workouts", () =>
                 DistanceInKm: 5.0,
                 DurationInMinutes: 29,
                 Pace: "5:48/km"),
-        }));
+        }))
+    .WithTags("Workouts");
 
-app.MapPost("/api/auth/register", ([FromBody] RegisterRequestDto request) =>
-{
-    return Results.Created(
-        "/api/users/me",
-        new
-        {
-            request.Name,
-            request.Email,
-            Message = "Conta criada com sucesso.",
-        });
-});
-
-app.MapPost("/api/auth/login", ([FromBody] LoginRequestDto request) =>
-{
-    return Results.Ok(
-        new AuthResponseDto(
-            AccessToken: "dev-token",
-            RefreshToken: "dev-refresh-token",
-            ExpiresInSeconds: 3600,
-            UserName: request.Email));
-});
+// --- Auth endpoints (real JWT) ---
+app.MapAuthEndpoints();
 
 app.Run();
