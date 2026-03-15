@@ -11,6 +11,5 @@ public sealed record LoginRequestDto(
 
 public sealed record AuthResponseDto(
     string AccessToken,
-    string RefreshToken,
     int ExpiresInSeconds,
     string UserName);
