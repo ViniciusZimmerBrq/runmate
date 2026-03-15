@@ -1,28 +1,54 @@
-name: Technical Task
-description: Track architecture, refactor, CI or security tasks
+name: Tech Task
+description: Track technical work aligned with architecture, platform, CI, or security
 title: "[Tech]: "
 labels:
   - tech-debt
 body:
+  - type: input
+    id: reference
+    attributes:
+      label: Reference
+      placeholder: TECH-001
   - type: textarea
     id: objective
     attributes:
       label: Objective
-      description: What technical outcome do we need?
     validations:
       required: true
   - type: textarea
-    id: details
+    id: context
     attributes:
-      label: Details
-      description: Relevant architectural or implementation details.
+      label: Context
     validations:
       required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included in this technical task?
   - type: textarea
     id: acceptance
     attributes:
       label: Acceptance Criteria
       description: How do we know this is done?
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Flutter
+        - Backend
+        - Security
+        - DevOps
+        - Platform
+    validations:
+      required: true
   - type: dropdown
     id: priority
     attributes:
@@ -31,3 +57,5 @@ body:
         - High
         - Medium
         - Low
+    validations:
+      required: true

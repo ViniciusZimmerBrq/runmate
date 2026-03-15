@@ -2,9 +2,6 @@ name: Backend CI
 
 on:
   pull_request:
-    paths:
-      - "runmate_backend/**"
-      - ".github/workflows/backend_ci.yml"
   push:
     branches:
       - main
@@ -23,16 +20,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect backend changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            backend:
+              - "runmate_backend/**"
+              - ".github/workflows/backend_ci.yml"
+
+      - name: Skip when backend is unchanged
+        if: steps.changes.outputs.backend != 'true'
+        run: echo "No backend changes detected; skipping backend CI."
+
       - name: Setup .NET
+        if: steps.changes.outputs.backend == 'true'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
 
       - name: Restore
+        if: steps.changes.outputs.backend == 'true'
         run: dotnet restore RunMate.sln
 
       - name: Build
+        if: steps.changes.outputs.backend == 'true'
         run: dotnet build RunMate.sln --configuration Release --no-restore
 
       - name: Test
+        if: steps.changes.outputs.backend == 'true'
         run: dotnet test RunMate.sln --configuration Release --no-build

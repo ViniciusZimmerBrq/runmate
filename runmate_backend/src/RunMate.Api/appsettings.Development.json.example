@@ -1,0 +1,11 @@
+{
+  "Jwt": {
+    "Secret": "REPLACE_WITH_A_SECURE_RANDOM_SECRET_MIN_32_CHARS",
+    "Issuer": "RunMate.Api",
+    "Audience": "RunMate.Mobile",
+    "ExpirationMinutes": 60
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=runmate;Username=postgres;Password=postgres"
+  }
+}

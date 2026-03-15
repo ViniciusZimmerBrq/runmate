@@ -2,9 +2,6 @@ name: Flutter CI
 
 on:
   pull_request:
-    paths:
-      - "runmate_app/**"
-      - ".github/workflows/flutter_ci.yml"
   push:
     branches:
       - main
@@ -23,16 +20,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect Flutter changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            flutter:
+              - "runmate_app/**"
+              - ".github/workflows/flutter_ci.yml"
+
+      - name: Skip when Flutter app is unchanged
+        if: steps.changes.outputs.flutter != 'true'
+        run: echo "No Flutter changes detected; skipping Flutter CI."
+
       - name: Setup Flutter
+        if: steps.changes.outputs.flutter == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.29.2"
 
       - name: Install dependencies
+        if: steps.changes.outputs.flutter == 'true'
         run: flutter pub get
 
       - name: Analyze
+        if: steps.changes.outputs.flutter == 'true'
         run: flutter analyze
 
       - name: Test
+        if: steps.changes.outputs.flutter == 'true'
         run: flutter test

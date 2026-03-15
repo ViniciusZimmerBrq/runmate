@@ -10,14 +10,27 @@ Construir um MVP com arquitetura limpa, fluxo de desenvolvimento previsivel e ba
 
 ## Fase atual
 
-Sprint 2 - foco total em `Login` e `Cadastro`.
+Sprint 2 — Auth end-to-end (backend JWT + telas Flutter + integração + sessão + navegação).
+
+## Stories da Sprint 2
+
+| Issue | Story | Status |
+|-------|-------|--------|
+| [#2](https://github.com/ViniciusZimmerBrq/runmate/issues/2) | US-301 - Emissão de JWT real | Ready |
+| [#3](https://github.com/ViniciusZimmerBrq/runmate/issues/3) | US-302 - Cadastro de usuário no backend | Ready |
+| [#4](https://github.com/ViniciusZimmerBrq/runmate/issues/4) | US-303 - Login real no backend | Ready |
+| [#5](https://github.com/ViniciusZimmerBrq/runmate/issues/5) | US-304 - Telas de login e cadastro Flutter | Ready |
+| [#6](https://github.com/ViniciusZimmerBrq/runmate/issues/6) | US-305 - Integrar Flutter com API de auth | Ready |
+| [#7](https://github.com/ViniciusZimmerBrq/runmate/issues/7) | US-306 - Persistir sessão autenticada | Ready |
+| [#8](https://github.com/ViniciusZimmerBrq/runmate/issues/8) | US-307 - Proteger navegação por sessão | Ready |
+
+Processo de execução: [`docs/process/SPRINT_EXECUTION.md`](../process/SPRINT_EXECUTION.md)
 
 ## Objetivos da Sprint 2
 
-- desenhar autenticacao segura de ponta a ponta
-- alinhar arquitetura entre Flutter e ASP.NET Core
-- padronizar pastas, contextos e responsabilidades dos agentes
-- reduzir ambiguidade antes da implementacao
+- auth segura de ponta a ponta (JWT real, cadastro, login)
+- telas Flutter conectadas à API real
+- sessão persistida e navegação protegida
 
 ## Usuario principal
 
