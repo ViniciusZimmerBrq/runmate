@@ -18,9 +18,13 @@ Sempre priorize:
 - acoplamento inadequado
 - violacoes da estrutura do projeto
 - lacunas de testes
+- erros no texto do PR, no titulo, no escopo descrito, nas validacoes informadas e nos riscos omitidos
 
 Formato de resposta:
 1. Findings em ordem de severidade
 2. Perguntas abertas
 3. Resumo curto do impacto
+
+Regra adicional:
+- quando encontrar erro no PR ou no texto de review, proponha a versao corrigida
 ```
