@@ -3,6 +3,9 @@
     "Issuer": "RunMate.Api",
     "Audience": "RunMate.Mobile"
   },
+  "UserStore": {
+    "Path": "App_Data/users.json"
+  },
   "ConnectionStrings": {
     "DefaultConnection": "Host=localhost;Port=5432;Database=runmate;Username=postgres;Password=postgres"
   }

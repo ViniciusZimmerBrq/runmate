@@ -1,6 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using RunMate.Api.Configuration;
+using RunMate.Application.Auth.Commands;
+using RunMate.Application.Auth.Dtos;
+using RunMate.Application.Auth.Interfaces;
+using RunMate.Application.Auth.Validators;
 using RunMate.Application.Dtos;
+using RunMate.Infrastructure.Persistence;
+using RunMate.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,9 +20,22 @@ if (!builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(jwtSetting
         "JWT secret is missing. Configure Jwt:Secret or JWT__Secret before starting the API.");
 }
 
+var userStoreOptions = builder.Configuration
+    .GetSection(FileUserStoreOptions.SectionName)
+    .Get<FileUserStoreOptions>() ?? new FileUserStoreOptions();
+
+if (!Path.IsPathRooted(userStoreOptions.Path))
+{
+    userStoreOptions.Path = Path.Combine(builder.Environment.ContentRootPath, userStoreOptions.Path);
+}
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton(userStoreOptions);
+builder.Services.AddSingleton<IUserRepository, JsonUserRepository>();
+builder.Services.AddSingleton<IPasswordHashService, Pbkdf2PasswordHashService>();
+builder.Services.AddSingleton<RegisterUserCommandHandler>();
 
 var app = builder.Build();
 
@@ -57,16 +76,34 @@ app.MapGet("/api/workouts", () =>
                 Pace: "5:48/km"),
         }));
 
-app.MapPost("/api/auth/register", ([FromBody] RegisterRequestDto request) =>
+app.MapPost(
+    "/api/auth/register",
+    async (
+        [FromBody] RegisterRequest request,
+        RegisterUserCommandHandler handler,
+        CancellationToken cancellationToken) =>
 {
+    var validationErrors = RegisterRequestValidator.Validate(request);
+    if (validationErrors.Count > 0)
+    {
+        return Results.ValidationProblem(validationErrors);
+    }
+
+    var result = await handler.HandleAsync(request, cancellationToken);
+    if (result.EmailAlreadyExists)
+    {
+        return Results.Conflict(
+            new ProblemDetails
+            {
+                Title = "Email already registered",
+                Detail = "An account with this email already exists.",
+                Status = StatusCodes.Status409Conflict,
+            });
+    }
+
     return Results.Created(
-        "/api/users/me",
-        new
-        {
-            request.Name,
-            request.Email,
-            Message = "Conta criada com sucesso.",
-        });
+        $"/api/users/{result.User!.UserId}",
+        result.User);
 });
 
 app.MapPost("/api/auth/login", ([FromBody] LoginRequestDto request) =>
