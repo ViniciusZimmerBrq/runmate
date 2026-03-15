@@ -1,0 +1,167 @@
+name: GitFlow
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  # ─── 1. Validate branch naming convention ────────────────────────────────
+  branch-name:
+    name: Branch Naming
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check branch name
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          PATTERN='^(main|develop|feature\/.+|hotfix\/.+|release\/.+)$'
+
+          if [[ ! "$BRANCH" =~ $PATTERN ]]; then
+            echo "❌ Branch '$BRANCH' não segue o padrão GitFlow."
+            echo ""
+            echo "Padrões aceitos:"
+            echo "  feature/<descricao>   → nova funcionalidade"
+            echo "  hotfix/<descricao>    → correção urgente em produção"
+            echo "  release/<versao>      → preparação de release (ex: release/1.2.0)"
+            echo ""
+            echo "Renomeie a branch e abra um novo PR."
+            exit 1
+          fi
+
+          echo "✓ Branch '$BRANCH' segue o padrão GitFlow."
+
+  # ─── 2. Prevent direct PRs from feature/* to main ────────────────────────
+  target-branch:
+    name: PR Target Branch
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Validate target
+        run: |
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
+
+          # feature/* and release/* must target develop or main respectively
+          if [[ "$HEAD" =~ ^feature\/ && "$BASE" == "main" ]]; then
+            echo "❌ PRs de feature/* devem ir para develop, não para main."
+            echo "   Mude o base branch do seu PR para develop."
+            exit 1
+          fi
+
+          if [[ "$HEAD" =~ ^hotfix\/ && "$BASE" != "main" && "$BASE" != "develop" ]]; then
+            echo "❌ PRs de hotfix/* devem ir para main ou develop."
+            exit 1
+          fi
+
+          echo "✓ PR de '$HEAD' para '$BASE' é válido."
+
+  # ─── 3. Auto-tag on push to main ─────────────────────────────────────────
+  auto-tag:
+    name: Auto Tag Release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' runmate_app/pubspec.yaml \
+            | head -1 | awk '{print $2}' | cut -d'+' -f1)
+          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Versão lida: v${VERSION}"
+
+      - name: Check if tag already exists
+        id: tag-check
+        run: |
+          TAG="${{ steps.version.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG já existe, pulando."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG será criada."
+          fi
+
+      - name: Create and push tag
+        if: steps.tag-check.outputs.exists == 'false'
+        run: |
+          TAG="${{ steps.version.outputs.version }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+          echo "✓ Tag $TAG criada."
+
+  # ─── 4. Auto-create Release PR (develop → main) ──────────────────────────
+  release-pr:
+    name: Suggest Release PR
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(grep '^version:' runmate_app/pubspec.yaml \
+            | head -1 | awk '{print $2}' | cut -d'+' -f1)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Check for open release PR
+        id: pr-check
+        run: |
+          COUNT=$(gh pr list \
+            --base main \
+            --head develop \
+            --state open \
+            --json number \
+            --jq length)
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release PR if none exists
+        if: steps.pr-check.outputs.count == '0'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          COMMITS=$(git log origin/main..develop --oneline | head -20 | sed 's/^/- /')
+
+          gh pr create \
+            --base main \
+            --head develop \
+            --title "release: v${VERSION}" \
+            --body "$(cat <<EOF
+## Release v${VERSION}
+
+### Commits incluídos
+${COMMITS}
+
+### Checklist
+- [ ] CI passa em develop
+- [ ] Testes manuais realizados
+- [ ] \`pubspec.yaml\` version atualizada
+- [ ] CHANGELOG atualizado
+
+### Após merge
+A tag \`v${VERSION}\` será criada automaticamente pelo workflow GitFlow.
+
+🤖 PR criado automaticamente pelo GitFlow workflow.
+EOF
+          )"
+          echo "✓ Release PR criado para v${VERSION}"

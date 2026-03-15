@@ -1,4 +1,6 @@
-.PHONY: dev backend flutter test backend-test flutter-test
+.PHONY: dev backend flutter test backend-test flutter-test \
+        issues workflow workflow-timeline workflow-reset \
+        setup-github release
 
 # Run backend and Flutter app simultaneously
 dev:
@@ -28,3 +30,44 @@ backend-test:
 # Run only Flutter tests
 flutter-test:
 	cd runmate_app && flutter test
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Multi-agent workflow (Claude CLI sequential pipeline)
+# ──────────────────────────────────────────────────────────────────────────────
+
+## Lista todas as issues do projeto com número, status e área
+issues:
+	python3 -m runmate_ops_swarms.cli ready
+
+## make workflow ISSUE=42       – roda o pipeline completo da issue
+workflow:
+ifndef ISSUE
+	$(error ISSUE não definido. Use: make workflow ISSUE=42)
+endif
+	@echo "▶ Iniciando workflow para issue #$(ISSUE)..."
+	python3 -m runmate_ops_swarms.cli workflow $(ISSUE)
+
+## make workflow-timeline ISSUE=42 – exibe o status do fluxo da issue
+workflow-timeline:
+ifndef ISSUE
+	$(error ISSUE não definido. Use: make workflow-timeline ISSUE=42)
+endif
+	python3 -m runmate_ops_swarms.cli timeline $(ISSUE)
+
+## make workflow-reset ISSUE=42 – reseta o estado local da issue
+workflow-reset:
+ifndef ISSUE
+	$(error ISSUE não definido. Use: make workflow-reset ISSUE=42)
+endif
+	python3 -m runmate_ops_swarms.cli reset $(ISSUE)
+
+## Configura branch protection, squash merge e settings do GitHub
+setup-github:
+	bash scripts/setup-github.sh
+
+## make release VERSION=1.1.0 – cria release branch, bump de versão e PR
+release:
+ifndef VERSION
+	$(error VERSION não definido. Use: make release VERSION=1.1.0)
+endif
+	bash scripts/release.sh $(VERSION)
