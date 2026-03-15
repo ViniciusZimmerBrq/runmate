@@ -37,17 +37,20 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
     .WithTags("Health");
 
-app.MapGet("/health/config", (IConfiguration config) =>
+if (app.Environment.IsDevelopment())
 {
-    var opts = config.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
-    return Results.Ok(new
+    app.MapGet("/health/config", (IConfiguration config) =>
     {
-        JwtIssuer = opts.Issuer,
-        JwtAudience = opts.Audience,
-        HasJwtSecret = !string.IsNullOrWhiteSpace(opts.Secret),
-        Environment = app.Environment.EnvironmentName,
-    });
-}).WithTags("Health");
+        var opts = config.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+        return Results.Ok(new
+        {
+            JwtIssuer = opts.Issuer,
+            JwtAudience = opts.Audience,
+            HasJwtSecret = !string.IsNullOrWhiteSpace(opts.Secret),
+            Environment = app.Environment.EnvironmentName,
+        });
+    }).WithTags("Health");
+}
 
 // --- Stub endpoints (kept for Flutter dashboard/workout screens) ---
 app.MapGet("/api/dashboard/weekly-summary", () =>

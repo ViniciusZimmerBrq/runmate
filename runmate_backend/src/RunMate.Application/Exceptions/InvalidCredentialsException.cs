@@ -1,4 +1,4 @@
-namespace RunMate.Application.Auth.Validators;
+namespace RunMate.Application.Exceptions;
 
 public sealed class InvalidCredentialsException : Exception
 {

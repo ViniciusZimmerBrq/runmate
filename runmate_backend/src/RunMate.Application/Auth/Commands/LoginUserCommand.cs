@@ -1,5 +1,5 @@
 using RunMate.Application.Auth.Interfaces;
-using RunMate.Application.Auth.Validators;
+using RunMate.Application.Exceptions;
 using RunMate.Domain.Repositories;
 
 namespace RunMate.Application.Auth.Commands;

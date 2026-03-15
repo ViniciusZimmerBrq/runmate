@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RunMate.Application.Auth.Commands;
-using RunMate.Application.Auth.Validators;
+using RunMate.Application.Exceptions;
 
 namespace RunMate.Api.Endpoints;
 

@@ -16,6 +16,14 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
     public JwtTokenGenerator(IOptions<JwtOptions> options)
     {
         _options = options.Value;
+
+        if (string.IsNullOrWhiteSpace(_options.Secret))
+            throw new InvalidOperationException(
+                "Jwt:Secret must be configured before issuing tokens.");
+
+        if (_options.Secret.Length < 32)
+            throw new InvalidOperationException(
+                "Jwt:Secret must be at least 32 characters for HMAC-SHA256.");
     }
 
     public (string Token, int ExpiresInSeconds) GenerateToken(Guid userId, string email, string name)
