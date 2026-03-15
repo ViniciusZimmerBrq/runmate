@@ -1,0 +1,4 @@
+interface:
+  display_name: "RunMate PR Creator"
+  short_description: "Draft review-ready RunMate pull requests."
+  default_prompt: "Use $runmate-pr-creator to turn this RunMate change into a focused PR title and description with validations, scope, and risks."
