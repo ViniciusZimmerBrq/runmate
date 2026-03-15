@@ -14,8 +14,8 @@
     <!-- JWT token generation -->
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.3.0" />
-    <!-- Password hashing via ASP.NET Core Identity (no EF Core dependency) -->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.Core" Version="8.0.11" />
+    <!-- Password hashing via Microsoft Identity abstractions (no EF Core dependency) -->
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="8.0.11" />
     <!-- Options pattern support -->
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
