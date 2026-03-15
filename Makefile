@@ -1,5 +1,6 @@
 .PHONY: dev backend flutter test backend-test flutter-test \
-        issues workflow workflow-timeline workflow-reset
+        issues workflow workflow-timeline workflow-reset \
+        setup-github release
 
 # Run backend and Flutter app simultaneously
 dev:
@@ -59,3 +60,14 @@ ifndef ISSUE
 	$(error ISSUE não definido. Use: make workflow-reset ISSUE=42)
 endif
 	python3 -m runmate_ops_swarms.cli reset $(ISSUE)
+
+## Configura branch protection, squash merge e settings do GitHub
+setup-github:
+	bash scripts/setup-github.sh
+
+## make release VERSION=1.1.0 – cria release branch, bump de versão e PR
+release:
+ifndef VERSION
+	$(error VERSION não definido. Use: make release VERSION=1.1.0)
+endif
+	bash scripts/release.sh $(VERSION)

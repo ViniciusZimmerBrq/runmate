@@ -30,3 +30,9 @@
 .runmate/
 __pycache__/
 *.pyc
+
+# Git worktrees (ambientes locais de dev)
+.worktrees/
+
+# Claude Code - configurações locais (não versionar)
+.claude/settings.local.json
