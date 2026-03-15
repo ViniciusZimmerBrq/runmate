@@ -5,7 +5,77 @@ import json
 import os
 import subprocess
 import sys
+import threading
+import time
+from datetime import datetime
 from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Terminal styling
+# ---------------------------------------------------------------------------
+
+class C:
+    """ANSI color/style codes. Disabled automatically when not a TTY."""
+    _tty = sys.stdout.isatty()
+
+    RESET   = "\033[0m"   if _tty else ""
+    BOLD    = "\033[1m"   if _tty else ""
+    DIM     = "\033[2m"   if _tty else ""
+    GREEN   = "\033[32m"  if _tty else ""
+    YELLOW  = "\033[33m"  if _tty else ""
+    RED     = "\033[31m"  if _tty else ""
+    CYAN    = "\033[36m"  if _tty else ""
+    BLUE    = "\033[34m"  if _tty else ""
+    MAGENTA = "\033[35m"  if _tty else ""
+    WHITE   = "\033[97m"  if _tty else ""
+
+
+def _fmt_time(seconds: float) -> str:
+    if seconds < 60:
+        return f"{seconds:.0f}s"
+    m, s = divmod(int(seconds), 60)
+    return f"{m}m {s:02d}s"
+
+
+class Spinner:
+    """Animated spinner that shows elapsed time while a long task runs."""
+    _FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+    def __init__(self, label: str):
+        self.label = label
+        self.elapsed = 0.0
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._spin, daemon=True)
+
+    def _spin(self) -> None:
+        start = time.monotonic()
+        i = 0
+        while not self._stop.is_set():
+            self.elapsed = time.monotonic() - start
+            frame = self._FRAMES[i % len(self._FRAMES)]
+            line = (
+                f"  {C.CYAN}{frame}{C.RESET} "
+                f"{self.label} "
+                f"{C.DIM}({_fmt_time(self.elapsed)}){C.RESET}"
+            )
+            print(f"\r{line:<80}", end="", flush=True)
+            i += 1
+            time.sleep(0.1)
+
+    def __enter__(self) -> "Spinner":
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_) -> None:
+        self._stop.set()
+        self._thread.join()
+        print(f"\r{' ' * 82}\r", end="", flush=True)  # clear spinner line
+
+
+def _bar(done: int, total: int, width: int = 28) -> str:
+    filled = int(width * done / total) if total else 0
+    return f"[{'█' * filled}{'░' * (width - filled)}]"
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -17,18 +87,20 @@ STATE_DIR = ROOT_DIR / ".runmate"
 STATE_FILE = STATE_DIR / "ops-state.json"
 
 
+_AGENTS_DIR = ROOT_DIR / ".claude" / "agents"
+
 AGENT_FILES = {
-    "pm": ROOT_DIR / "agents" / "PM_AGENT.md",
-    "po": ROOT_DIR / "agents" / "PO_AGENT.md",
-    "uxui": ROOT_DIR / "agents" / "UX_UI_AGENT.md",
-    "techlead": ROOT_DIR / "agents" / "TECH_LEAD_AGENT.md",
-    "flutter": ROOT_DIR / "agents" / "FLUTTER_DEV_AGENT.md",
-    "backend": ROOT_DIR / "agents" / "BACKEND_CSHARP_AGENT.md",
-    "security": ROOT_DIR / "agents" / "SECURITY_AGENT.md",
-    "qa": ROOT_DIR / "agents" / "QA_AGENT.md",
-    "devops": ROOT_DIR / "agents" / "DEVOPS_AGENT.md",
-    "prcreator": ROOT_DIR / "agents" / "PR_CREATOR_AGENT.md",
-    "codereview": ROOT_DIR / "agents" / "CODE_REVIEW_AGENT.md",
+    "pm":         _AGENTS_DIR / "pm.md",
+    "po":         _AGENTS_DIR / "po.md",
+    "uxui":       _AGENTS_DIR / "ux-ui.md",
+    "techlead":   _AGENTS_DIR / "tech-lead.md",
+    "flutter":    _AGENTS_DIR / "flutter-dev.md",
+    "backend":    _AGENTS_DIR / "backend-dev.md",
+    "security":   _AGENTS_DIR / "security.md",
+    "qa":         _AGENTS_DIR / "qa.md",
+    "devops":     _AGENTS_DIR / "tech-lead.md",
+    "prcreator":  _AGENTS_DIR / "pr-creator.md",
+    "codereview": _AGENTS_DIR / "code-review.md",
 }
 
 AGENT_LABELS = {
@@ -60,8 +132,12 @@ def shutil_which(name: str) -> str | None:
 
 
 def print_header() -> None:
-    print("\nRunMate Ops")
-    print(f"Project: {OWNER}/{REPO} - board {PROJECT_NUMBER}\n")
+    title = f"  🏃 RunMate Ops  ·  {OWNER}/{REPO}  ·  board #{PROJECT_NUMBER}  "
+    width = max(len(title) + 2, 54)
+    border = "─" * width
+    print(f"\n{C.CYAN}╭{border}╮{C.RESET}")
+    print(f"{C.CYAN}│{C.RESET}{C.BOLD}{title.center(width)}{C.RESET}{C.CYAN}│{C.RESET}")
+    print(f"{C.CYAN}╰{border}╯{C.RESET}\n")
 
 
 def ensure_state_file() -> None:
@@ -90,6 +166,64 @@ def gh_json(args: list[str]) -> dict:
         text=True,
     )
     return json.loads(proc.stdout)
+
+
+def gh_run(args: list[str]) -> subprocess.CompletedProcess:
+    """Run a gh command without expecting JSON output."""
+    require_cmd("gh")
+    return subprocess.run(
+        ["gh", *args],
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _get_project_node_id() -> str:
+    data = gh_json(["project", "list", "--owner", OWNER, "--format", "json", "--limit", "50"])
+    for proj in data.get("projects", []):
+        if str(proj.get("number")) == str(PROJECT_NUMBER):
+            return proj["id"]
+    raise SystemExit(f"Projeto #{PROJECT_NUMBER} não encontrado para {OWNER}.")
+
+
+def _get_status_field_and_option(target_status: str) -> tuple[str, str]:
+    """Return (status_field_id, option_id) for the given status name."""
+    data = gh_json(["project", "field-list", PROJECT_NUMBER, "--owner", OWNER, "--format", "json"])
+    for field in data.get("fields", []):
+        if field.get("name") == "Status":
+            for option in field.get("options", []):
+                if option["name"] == target_status:
+                    return field["id"], option["id"]
+            available = [o["name"] for o in field.get("options", [])]
+            raise SystemExit(f"Status '{target_status}' não existe. Disponíveis: {available}")
+    raise SystemExit("Campo 'Status' não encontrado no projeto.")
+
+
+def gh_move_board_status(issue_number: int, target_status: str, item: dict | None = None) -> None:
+    """Move the project board card for an issue to the given status column."""
+    try:
+        if item is None:
+            item = get_issue(issue_number)
+        item_id = item.get("id")
+        if not item_id:
+            print(f"  ⚠️  Board: item ID não encontrado para issue #{issue_number}.")
+            return
+        project_id = _get_project_node_id()
+        field_id, option_id = _get_status_field_and_option(target_status)
+        result = gh_run([
+            "project", "item-edit",
+            "--project-id", project_id,
+            "--id", item_id,
+            "--field-id", field_id,
+            "--single-select-option-id", option_id,
+        ])
+        if result.returncode == 0:
+            print(f"  📋 Board: #{issue_number} → '{target_status}'")
+        else:
+            print(f"  ⚠️  Board: falha ao mover para '{target_status}': {result.stderr[:200]}")
+    except Exception as exc:
+        print(f"  ⚠️  Board: {exc}")
 
 
 def fetch_items() -> dict:
@@ -620,6 +754,170 @@ def cmd_sprint_start(args: argparse.Namespace) -> None:
     print(sprint_start_report(args.sprint))
 
 
+# ---------------------------------------------------------------------------
+# Claude CLI sequential workflow
+# ---------------------------------------------------------------------------
+
+def _build_step_prompt(system_prompt: str, accumulated_context: str, agent_label: str) -> str:
+    sep = "=" * 60
+    return "\n".join([
+        system_prompt, "",
+        sep, "CONTEXTO ACUMULADO DO WORKFLOW ATÉ AGORA:", sep,
+        accumulated_context, sep,
+        f"Execute sua função como {agent_label}.",
+        "Produza o handoff completo seguindo o formato do contrato de agente.",
+        sep,
+    ])
+
+
+def _run_claude_step(system_prompt: str, accumulated_context: str, agent_label: str) -> tuple[str, float]:
+    """Run a single agent via claude --print with a live spinner. Returns (output, elapsed_s)."""
+    full_prompt = _build_step_prompt(system_prompt, accumulated_context, agent_label)
+    output_lines: list[str] = []
+    stderr_lines: list[str] = []
+    returncode = 0
+
+    try:
+        proc = subprocess.Popen(
+            ["claude", "--print", full_prompt],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=ROOT_DIR,
+        )
+    except FileNotFoundError:
+        raise SystemExit(
+            f"{C.RED}claude CLI não encontrado.{C.RESET}\n"
+            "Instale: https://claude.ai/code"
+        )
+
+    def _read_stdout() -> None:
+        for line in proc.stdout:
+            output_lines.append(line)
+
+    def _read_stderr() -> None:
+        for line in proc.stderr:
+            stderr_lines.append(line)
+
+    t_out = threading.Thread(target=_read_stdout, daemon=True)
+    t_err = threading.Thread(target=_read_stderr, daemon=True)
+    t_out.start(); t_err.start()
+
+    with Spinner(f"Executando {C.BOLD}{agent_label}{C.RESET}") as spinner:
+        try:
+            proc.wait(timeout=600)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            return f"[TIMEOUT] {agent_label} não respondeu em 10 minutos.", 600.0
+        elapsed = spinner.elapsed
+
+    t_out.join(); t_err.join()
+    returncode = proc.returncode
+
+    output = "".join(output_lines).strip()
+    if returncode != 0 and stderr_lines:
+        output += f"\n\n[stderr]: {''.join(stderr_lines)[:400]}"
+    return output or "[sem saída]", elapsed
+
+
+def run_claude_workflow(issue_number: int) -> None:
+    item = get_issue(issue_number)
+    issue_state = ensure_issue_state(issue_number, item)
+    current_idx = len(issue_state["completed"])
+    remaining = issue_state["flow"][current_idx:]
+
+    if not remaining:
+        print_header()
+        print(f"{C.YELLOW}Issue #{issue_number} já completou todo o fluxo local.{C.RESET}")
+        print(f"Use {C.BOLD}make workflow-reset ISSUE={issue_number}{C.RESET} para recomeçar.")
+        return
+
+    run_dir = (
+        STATE_DIR / "runs"
+        / f"issue-{issue_number}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    )
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    total = len(remaining)
+    sep = f"{C.DIM}{'─' * 54}{C.RESET}"
+
+    print_header()
+    print(f"  {C.BOLD}Issue #{issue_number}{C.RESET}  {item['title']}")
+    print(f"  {C.DIM}Pipeline{C.RESET}  {C.CYAN}{' → '.join(AGENT_LABELS[k] for k in remaining)}{C.RESET}")
+    print(f"  {C.DIM}Outputs{C.RESET}   {C.DIM}{run_dir}{C.RESET}")
+    print()
+
+    gh_move_board_status(issue_number, "In Progress", item)
+    print()
+
+    task_prompt = build_task_prompt(item)
+    accumulated_context = f"=== Issue #{issue_number} ===\n{task_prompt}\n"
+    (run_dir / "00-issue-context.md").write_text(accumulated_context)
+
+    timings: list[tuple[str, float]] = []
+    workflow_start = time.monotonic()
+
+    for step_idx, agent_key in enumerate(remaining, start=1):
+        label = AGENT_LABELS[agent_key]
+        agent_file = AGENT_FILES[agent_key]
+        progress = _bar(step_idx - 1, total)
+
+        print(sep)
+        print(
+            f"  {C.BOLD}{C.MAGENTA}[{step_idx}/{total}]{C.RESET}  "
+            f"{C.BOLD}{label}{C.RESET}  "
+            f"{C.DIM}{progress}{C.RESET}"
+        )
+        print()
+
+        if not agent_file.exists():
+            print(f"  {C.YELLOW}⚠  Agente não encontrado:{C.RESET} {agent_file}")
+            output, elapsed = f"[SKIP] Arquivo ausente: {agent_file}", 0.0
+        else:
+            system_prompt = extract_prompt_block(agent_file)
+            output, elapsed = _run_claude_step(system_prompt, accumulated_context, label)
+
+        timings.append((label, elapsed))
+        status = f"{C.GREEN}✓{C.RESET}" if not output.startswith("[SKIP]") and not output.startswith("[TIMEOUT]") else f"{C.YELLOW}⚠{C.RESET}"
+        print(f"  {status}  {label} concluído em {C.DIM}{_fmt_time(elapsed)}{C.RESET}")
+
+        accumulated_context += f"\n=== Output: {label} ===\n{output}\n"
+        (run_dir / f"{step_idx:02d}-{agent_key}.md").write_text(f"# {label}\n\n{output}\n")
+
+        state = load_state()
+        state["issues"][str(issue_number)]["completed"].append(agent_key)
+        save_state(state)
+
+    # Summary
+    summary_path = run_dir / "summary.md"
+    summary_path.write_text(f"# Workflow Summary — Issue #{issue_number}\n\n{accumulated_context}\n")
+
+    total_elapsed = time.monotonic() - workflow_start
+
+    print(sep)
+    print(f"  {C.GREEN}{C.BOLD}✅ Workflow concluído em {_fmt_time(total_elapsed)}{C.RESET}")
+    print()
+    gh_move_board_status(issue_number, "Review", item)
+    print()
+
+    # Timing breakdown
+    print(f"  {C.BOLD}Tempo por agente:{C.RESET}")
+    max_t = max(t for _, t in timings) if timings else 1
+    for lbl, t in timings:
+        bar_len = int(20 * t / max_t) if max_t else 0
+        bar = "█" * bar_len
+        print(f"    {lbl:<14} {C.DIM}{_fmt_time(t):>6}{C.RESET}  {C.CYAN}{bar}{C.RESET}")
+
+    print()
+    print(f"  {C.DIM}Outputs  {run_dir}{C.RESET}")
+    print(f"  {C.DIM}Resumo   {summary_path}{C.RESET}")
+    print()
+
+
+def cmd_workflow(args: argparse.Namespace) -> None:
+    run_claude_workflow(args.issue)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="runmate-ops")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -639,6 +937,7 @@ def build_parser() -> argparse.ArgumentParser:
         "timeline": cmd_timeline,
         "run": cmd_run,
         "swarm": cmd_swarm,
+        "workflow": cmd_workflow,
         "start": cmd_start,
         "handoff": cmd_handoff,
         "reset": cmd_reset,
